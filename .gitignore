@@ -1,0 +1,23 @@
+# --- Security (Crucial) ---
+.env
+.env.local
+*.key
+*.pem
+
+# --- Python & Environment ---
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+venv/
+env/
+.venv/
+build/
+dist/
+*.egg-info/
+
+# --- IDE & System Junk ---
+.DS_Store
+.vscode/
+.idea/
+*.log
