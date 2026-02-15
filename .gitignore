@@ -1,12 +1,9 @@
-# --- Security (Crucial) ---
+# --- Secrets ---
 .env
-.env.local
-*.key
-*.pem
 
-# --- Python & Environment ---
+# --- Python ---
 __pycache__/
-*.py[cod]
+*.pyc
 *$py.class
 .ipynb_checkpoints/
 venv/
@@ -21,3 +18,6 @@ dist/
 .vscode/
 .idea/
 *.log
+
+# --- uv ---
+.python-version
