@@ -19,8 +19,7 @@ from agt_sea.models.state import (
     LLMProvider,
     WorkflowStatus,
 )
-
-from agt_sea.config import get_llm_provider, get_model_name
+from agt_sea.config import get_llm_provider
 
 STRATEGIST_SYSTEM_PROMPT = """You are a senior brand strategist at a world-class creative agency.
 
@@ -79,7 +78,6 @@ def run_strategist(state: AgencyState) -> AgencyState:
         AgentOutput(
             agent=AgentRole.STRATEGIST,
             provider=provider,
-            model=get_model_name(provider),
             content=creative_brief,
             timestamp=datetime.utcnow(),
         )

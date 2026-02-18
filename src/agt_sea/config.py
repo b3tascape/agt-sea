@@ -38,9 +38,9 @@ def get_llm_provider() -> LLMProvider:
 # ---------------------------------------------------------------------------
 
 DEFAULT_MODELS: dict[LLMProvider, str] = {
-    LLMProvider.ANTHROPIC: "claude-sonnet-4-20250514",
-    LLMProvider.GOOGLE: "gemini-2.0-flash",
-    LLMProvider.OPENAI: "gpt-4o",
+    LLMProvider.ANTHROPIC: "claude-haiku-4-5-20251001", # "claude-haiku-4-5-20251001" | "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-sonnet-4-5-20250929" | "claude-sonnet-4-20250514"
+    LLMProvider.GOOGLE: "gemini-2.5-flash", # "gemini-3-flash-preview" | gemini-3-pro-preview" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-2.0-flash"
+    LLMProvider.OPENAI: "gpt-4o", # 
 }
 
 

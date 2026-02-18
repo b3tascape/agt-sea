@@ -83,6 +83,10 @@ class AgentOutput(BaseModel):
     """A single output produced by an agent, stored in iteration history."""
     agent: AgentRole
     provider: LLMProvider
+    model: str = Field(
+        ...,
+        description="The model name used for this output.",
+    )
     content: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     evaluation: CDEvaluation | None = Field(
