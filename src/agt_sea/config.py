@@ -50,12 +50,15 @@ def get_model_name(provider: LLMProvider | None = None) -> str:
     Can be overridden via MODEL_NAME env var.
     """
     provider = provider or get_llm_provider()
-    return os.getenv("MODEL_NAME", DEFAULT_MODELS[provider])
+    return (os.getenv("MODEL_NAME") or DEFAULT_MODELS[provider]) #sm return os.getenv("MODEL_NAME", DEFAULT_MODELS[provider])
 
 
 # ---------------------------------------------------------------------------
 # Workflow defaults
 # ---------------------------------------------------------------------------
 
-MAX_ITERATIONS: int = int(os.getenv("MAX_ITERATIONS", "5"))
-APPROVAL_THRESHOLD: float = float(os.getenv("APPROVAL_THRESHOLD", "80.0"))
+MAX_ITERATIONS: int = int(os.getenv("MAX_ITERATIONS") or "5") #sm MAX_ITERATIONS: int = int(os.getenv("MAX_ITERATIONS", "5"))
+APPROVAL_THRESHOLD: float = float(os.getenv("APPROVAL_THRESHOLD") or "80.0") #sm APPROVAL_THRESHOLD: float = float(os.getenv("APPROVAL_THRESHOLD", "80.0"))
+
+
+
