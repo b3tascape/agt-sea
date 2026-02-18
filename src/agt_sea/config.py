@@ -22,7 +22,8 @@ load_dotenv()
 
 def get_llm_provider() -> LLMProvider:
     """Return the active LLM provider, defaulting to Anthropic."""
-    raw = os.getenv("LLM_PROVIDER", "anthropic").lower()
+    
+    raw = (os.getenv("LLM_PROVIDER") or "anthropic").lower() #sm: previous: raw = os.getenv("LLM_PROVIDER", "anthropic").lower()
     try:
         return LLMProvider(raw)
     except ValueError:
