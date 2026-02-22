@@ -103,7 +103,7 @@ The framework supports provider switching via configuration — change the `LLM_
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/agt-sea.git
+git clone https://github.com/b3tascape/agt-sea.git
 cd agt-sea
 
 # Install dependencies
