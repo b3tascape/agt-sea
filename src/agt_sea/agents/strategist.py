@@ -79,6 +79,7 @@ def run_strategist(state: AgencyState) -> AgencyState:
             agent=AgentRole.STRATEGIST,
             provider=provider,
             model=get_model_name(provider),
+            iteration=state.iteration,
             content=creative_brief,
             timestamp=datetime.utcnow(),
         )

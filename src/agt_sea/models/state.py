@@ -87,6 +87,10 @@ class AgentOutput(BaseModel):
         ...,
         description="The model name used for this output.",
     )
+    iteration: int = Field(
+        ...,
+        description="The iteration number when this output was produced.",
+    )
     content: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     evaluation: CDEvaluation | None = Field(
@@ -141,7 +145,7 @@ class AgencyState(BaseModel):
         description="Maximum allowed iterations before forced exit.",
     )
     approval_threshold: float = Field(
-        default=80.0,
+        default=85.0,
         description="Minimum cd_score required for approval.",
     )
 

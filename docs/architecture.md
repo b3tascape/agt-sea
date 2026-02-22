@@ -17,7 +17,7 @@ graph LR
 
     D --> E{"`**creative
     standard hit?**
-    cd_score ≥ 80%`"}:::decision
+    cd_score ≥ 85%`"}:::decision
 
     E -->|yes| G(["`**output:**
     Proposed creative

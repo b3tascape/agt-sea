@@ -26,40 +26,36 @@ def load_brief(filename: str = "sample_brief_001.txt") -> str:
 
 
 def main():
-    # Load brief
     brief = load_brief()
-    
-    # Create initial state with the sample brief
     state = AgencyState(client_brief=brief)
 
-    print("")
-    print("=" * 60)
-    print("STRATEGIST TEST")
-    print("=" * 60)
-    print(f"\nClient Brief:\n{state.client_brief}")
-    print("")
-    print("-" * 60)
-    print("-" * 60)
+    # --- Strategist ---
+    state = run_strategist(state)
 
-    # Run the strategist
-    updated_state = run_strategist(state)
-
-    print(f"\nCreative Brief:\n{updated_state.creative_brief}")
+    print("\n" + "=" * 60)
+    print("=" * 60)
+    print("STEP 1: STRATEGIST")
+    print("=" * 60)
+    print("=" * 60)
+    print(f"Status: {state.status}")
+    print(f"History entries: {len(state.history)}")
+    print(f"Agent: {state.history[0].agent}")
+    print(f"Provider: {state.history[0].provider}")
+    print(f"Model: {state.history[0].model}")
+    print(f"Date: {state.history[0].timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+    print("-" * 60)
+    print("=" * 60)
+    print("")
+    print(f"Client Brief:\n{state.client_brief}")
     print("")
     print("-" * 60)
     print("-" * 60)
     print("")
-    print("=" * 60)
-    print("=" * 60)
-    print(f"Status: {updated_state.status}")
-    print(f"History entries: {len(updated_state.history)}")
-    print(f"Agent: {updated_state.history[0].agent}")
-    print(f"Provider: {updated_state.history[0].provider}")
-    print(f"Model: {updated_state.history[0].model}")
-    print("=" * 60)
-    print("=" * 60)
+    print(f"Creative Brief:\n{state.creative_brief}")
     print("")
-    
+    print("-" * 60)
+    print("-" * 60)
+    print("")
 
 
 if __name__ == "__main__":

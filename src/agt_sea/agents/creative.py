@@ -123,6 +123,7 @@ def run_creative(state: AgencyState) -> AgencyState:
             agent=AgentRole.CREATIVE,
             provider=provider,
             model=get_model_name(provider),
+            iteration=state.iteration,
             content=creative_concept,
             timestamp=datetime.utcnow(),
         )

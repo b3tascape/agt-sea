@@ -18,7 +18,7 @@ These are modelled as two distinct conditional nodes in the graph.
 
 The creative loop terminates when **either** condition is met:
 
-1. **Approval:** The Creative Director's `cd_score` meets or exceeds the `approval_threshold` (default: 80/100). Status is set to `APPROVED`. The current creative concept is returned as the final output.
+1. **Approval:** The Creative Director's `cd_score` meets or exceeds the `approval_threshold` (default: 85/100). Status is set to `APPROVED`. The current creative concept is returned as the final output.
 2. **Max iterations:** The loop has executed `max_iterations` times (default: 5). Status is set to `MAX_ITERATIONS_REACHED`. The system selects the **highest-scoring creative concept** from the iteration history and returns it as the final output, with a clear indication that it was not formally approved but represents the best work produced within the iteration budget.
 
 Both thresholds are configurable fields on `AgencyState` and can be adjusted per run.
