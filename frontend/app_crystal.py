@@ -4,7 +4,13 @@ agt_sea — Streamlit Frontend (Retro DOS Theme)
 Run with: uv run streamlit run frontend/app.py
 """
 
+import sys
+from pathlib import Path
+
 import streamlit as st
+
+# Ensure agt_sea package is importable (needed for Streamlit Cloud)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from agt_sea.graph.workflow import build_graph
 from agt_sea.models.state import (
