@@ -1,7 +1,8 @@
-# --- Secrets ---
+# --- Environment variables (contains API keys) ---
 .env
-.testlog.txt
-.files/
+
+# --- Hidden file archive ---
+.archive/
 
 # --- Python ---
 __pycache__/

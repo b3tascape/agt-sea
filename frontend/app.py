@@ -391,9 +391,12 @@ selected_philosophy = st.sidebar.selectbox(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    "Submit a client brief and watch three AI agents "
-    "collaborate — a `strategist` writes the creative brief, a `creative` "
-    "generates ideas, and a `creative director` evaluates the work."
+    """
+    Submit a client brief and watch three AI agents collaborate:
+    * a `strategist` writes the creative brief
+    * a `creative` generates ideas
+    * a `creative director` evaluates the work
+    """
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown(
