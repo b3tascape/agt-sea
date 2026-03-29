@@ -63,7 +63,7 @@ class CDEvaluation(BaseModel):
         ...,
         ge=0,
         le=100,
-        description="Quality score out of 100. Threshold for approval is 80.",
+        description="Quality score out of 100. Threshold for approval is 85.",
     )
     strengths: list[str] = Field(
         default_factory=list,

@@ -249,11 +249,11 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 - [ ] Frontend refinement and UX polish
 
 **Future Modules**
-- [ ] Brand Strategy — brand positioning, architecture, competitive positioning
-- [ ] Standalone Strategic Agents — e.g. creative brief writer
-- [ ] Specialist Creative Agents — copywriter, art director, social creative
-- [ ] RAG-enhanced creative philosophies
-- [ ] Provider comparison tooling
+- [ ] Strategy - Standalone strategy agent(s) (e.g. Brand positioning, Creative brief writer)
+- [ ] Creative - Standalone creative agent(s) (e.g. Campaign creative, Copywriter, Art Director, Social creative, AV creative..)
+- [ ] Creative tool - a suite of creative tools (Provider comparison tooling)
+- [ ] Marketing - Standalone marketing agent(s) (e.g. Client brief writer)
+- [ ] Production (e.g. Image, Audio, Film, Social content)
 
 ---
 

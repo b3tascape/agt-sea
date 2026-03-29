@@ -81,10 +81,12 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 
 ## Current Phase & Roadmap
 
-**Current:** Phase 6 — Refinement (error handling, human-in-the-loop, logging/tracing)
+**Current:** MODULE 01) Phase 6 — Refinement (error handling, human-in-the-loop, logging/tracing)
 
 **Modules planned:**
-1. Creative Campaign (Strategist → Creative → CD loop) ← COMPLETE, deployed
-2. Brand Strategy (brand positioning, architecture)
-3. Standalone Strategic Agents (e.g. creative brief writer)
-4. Standalone Specialist Creative Agents (copywriter, art director, social creative)
+1. Workflows - Creative Campaign Development (Strategist - Creative brief writer → Creative → CD loop) ← SPRINT 1 COMPLETE, deployed
+2. Strategy - Standalone strategy agent(s) (e.g. Brand positioning, Creative brief writer)
+3. Creative - Standalone creative agent(s) (e.g. Campaign creative, Copywriter, Art Director, Social creative, AV creative..)
+4. Creative tools - a suite of creative tools
+5. Marketing - Standalone marketing agent(s) (e.g. Client brief writer)
+6. Production (e.g. Image, Audio, Film, Social content)
