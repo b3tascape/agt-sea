@@ -75,7 +75,7 @@ def main():
     iteration = 0
     for entry in final_state["history"]:
         if entry.agent == AgentRole.STRATEGIST:
-            print(f"\n--- Strategist ------------------------")
+            print("\n--- Strategist ------------------------")
             print_metadata(entry)
             print(f"\n  Creative Brief:\n{entry.content[:500]}...")
 

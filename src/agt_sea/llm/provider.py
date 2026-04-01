@@ -16,6 +16,7 @@ from agt_sea.models.state import LLMProvider
 
 def get_llm(
     provider: LLMProvider | None = None,
+    model: str | None = None,
     temperature: float = 0.7,
 ) -> BaseChatModel:
     """Return a LangChain chat model for the specified provider.
@@ -23,6 +24,10 @@ def get_llm(
     Args:
         provider: Which LLM provider to use. Defaults to the value
             from config / environment.
+        model: Model name override. When provided (e.g. from the
+            frontend sidebar selector), this is used directly instead
+            of reading from config. When None, falls back to
+            get_model_name(provider) as before.
         temperature: Sampling temperature. Higher values produce more
             creative output.
 
@@ -31,7 +36,7 @@ def get_llm(
         .stream(), or .with_structured_output().
     """
     provider = provider or get_llm_provider()
-    model_name = get_model_name(provider)
+    model_name = model or get_model_name(provider)
 
     if provider == LLMProvider.ANTHROPIC:
         from langchain_anthropic import ChatAnthropic

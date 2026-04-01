@@ -113,7 +113,7 @@ class AgencyState(BaseModel):
 
     # --- Input ---
     client_brief: str = Field(
-        ...,
+        default="",
         description="The raw client brief as supplied.",
     )
     creative_philosophy: CreativePhilosophy = Field(
@@ -141,11 +141,11 @@ class AgencyState(BaseModel):
         description="Current iteration count for the creative loop.",
     )
     max_iterations: int = Field(
-        default=5,
+        default=3,
         description="Maximum allowed iterations before forced exit.",
     )
     approval_threshold: float = Field(
-        default=85.0,
+        default=80.0,
         description="Minimum cd_score required for approval.",
     )
 

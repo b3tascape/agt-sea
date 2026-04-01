@@ -2,9 +2,7 @@
 
 An AI-powered creative marketing tool for brands and agencies offering a number of services designed to improve creative output. 
 
-At present, agt-sea just contains a single module but more are planned to follow.
-
-Current module: Creative agency framework — three AI agents collaborate to transform a client brief into a creative campaign concept.
+The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development.
 
 A Strategist writes the creative brief, a Creative generates ideas, and a Creative Director evaluates the work through a configurable creative philosophy. The system iterates until the work meets the quality threshold or the iteration budget is exhausted.
 
@@ -34,7 +32,7 @@ graph LR
 
     D --> E{"`**creative
     standard hit?**
-    cd_score ≥ 85%`"}:::decision
+    cd_score >= 80%`"}:::decision
 
     E -->|yes| G(["`**output:**
     Approved creative
@@ -42,7 +40,7 @@ graph LR
 
     E -->|no| F{"`**max iterations
     reached?**
-    iteration ≥ 5`"}:::decision
+    iteration >= 3`"}:::decision
 
     F -->|no| C
     F -->|"`yes: output
@@ -117,7 +115,7 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 
 **State design**: Dual access pattern — latest outputs at top level (`creative_brief`, `creative_concept`, `cd_evaluation`) for quick access by downstream agents, plus a full ordered `history: list[AgentOutput]` for traceability and UI display.
 
-**Key fields on AgencyState**: `approval_threshold` (default 85.0), `max_iterations` (default 5), `creative_philosophy` (default bold_and_disruptive), `iteration` (incremented by Creative agent), `status` (tracks workflow lifecycle).
+**Key fields on AgencyState**: `approval_threshold` (default 80.0), `max_iterations` (default 3), `creative_philosophy` (default bold_and_disruptive), `iteration` (incremented by Creative agent), `status` (tracks workflow lifecycle).
 
 ---
 
@@ -127,14 +125,14 @@ Application settings are centralised in `config.py` and accessed via helper func
 
 A bridge at module load injects API keys from `st.secrets` into `os.environ` so LangChain providers (which read keys directly from the environment) work on Streamlit Cloud without modification.
 
-Settings include: LLM provider, model name per provider, max iterations, approval threshold. All overridable via environment variables or Streamlit secrets (`LLM_PROVIDER`, `MODEL_NAME`, `MAX_ITERATIONS`, `APPROVAL_THRESHOLD`).
+Settings include: LLM provider, model name per provider, max iterations, approval threshold. All overridable via environment variables or Streamlit secrets (`LLM_PROVIDER`, `ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL`, `MAX_ITERATIONS`, `APPROVAL_THRESHOLD`).
 
-**Default models**:
+**Default models** (local/development tier):
 - Anthropic: `claude-sonnet-4-6`
-- Google: `gemini-2.5-flash`
-- OpenAI: `gpt-4o`
+- Google: `gemini-3-flash-preview`
+- OpenAI: `gpt-5.4-mini`
 
-**Deployment note**: Streamlit Cloud uses `MODEL_NAME = claude-haiku-4-5-20251001` (set in secrets dashboard) for cost control. Local development uses the default Sonnet model.
+**Deployment note**: Streamlit Cloud uses per-provider model secrets (e.g. `ANTHROPIC_MODEL=claude-haiku-4-5-20251001`) set in the secrets dashboard for cost control. The sidebar model selector defaults to whatever the config resolves for the active provider.
 
 ---
 
@@ -145,26 +143,47 @@ Settings include: LLM provider, model name per provider, max iterations, approva
 agt_sea/
 ├── docs/
 │   ├── architecture.md              # Mermaid graph diagram
+│   ├── SPEC-multipage.md            # Multipage restructure spec
 │   └── adr/                         # Architecture Decision Records
 ├── src/
 │   └── agt_sea/
 │       ├── config.py                # Settings, env vars, st.secrets bridge
 │       ├── agents/
-│       │   ├── strategist.py        # Brief → creative brief
-│       │   ├── creative.py          # Creative brief → concepts
-│       │   └── creative_director.py # Concepts → evaluation
+│       │   ├── strategist.py        # Brief -> creative brief
+│       │   ├── creative.py          # Creative brief -> concepts
+│       │   └── creative_director.py # Concepts -> evaluation
 │       ├── graph/
 │       │   └── workflow.py          # LangGraph orchestration
 │       ├── llm/
 │       │   └── provider.py          # LLM provider abstraction
 │       ├── models/
 │       │   └── state.py             # Pydantic data models & enums
+│       ├── prompts/
+│       │   ├── loader.py            # load_philosophy_prompt() — reads prompt text from disk
+│       │   └── philosophies/        # One .txt file per CreativePhilosophy enum value
 ├── tests/
 │   ├── test_strategist.py           # Strategist isolation test
-│   ├── test_creative.py             # Strategist → Creative test
+│   ├── test_creative.py             # Strategist -> Creative test
 │   └── test_pipeline.py             # Full pipeline integration test
 ├── frontend/
-│   └── app.py                       # Streamlit interface
+│   ├── app.py                       # Navigation shell (entry point)
+│   ├── pages/
+│   │   ├── strategy.py              # Standalone strategist
+│   │   ├── creative.py              # Standalone creative
+│   │   ├── workflow.py              # Full pipeline (tabbed)
+│   │   ├── tools.py                 # Tools (holding message)
+│   │   ├── marketing.py             # Placeholder (hidden)
+│   │   ├── production.py            # Placeholder (hidden)
+│   │   └── agnostic.py              # Placeholder (hidden)
+│   ├── components/
+│   │   ├── sidebar.py               # Logo, global params, footer
+│   │   ├── agent_output.py          # Single agent output display
+│   │   ├── history.py               # Pipeline history expanders
+│   │   ├── run_metadata.py          # Run metrics bar
+│   │   ├── progress.py              # Live node progress
+│   │   └── footer.py                # Footer badge
+│   └── themes/
+│       └── b3ta.css                 # Theme CSS
 ├── briefs/
 │   └── sample_brief_001.txt         # Sample client brief
 ├── pyproject.toml
@@ -191,8 +210,8 @@ agt_sea/
 ## File Conventions
 
 - API keys: `.env` in project root (gitignored)
-- Creative philosophy prompts: hardcoded dict in `creative_director.py` (future: RAG-enhanced)
-- Agent system prompts: inline in agent files (future: separate `prompts/` directory)
+- Creative philosophy prompts: plain text files in `prompts/philosophies/`, loaded by `prompts/loader.py` (future: RAG-enhanced)
+- Agent system prompts: inline in agent files (future: move to `prompts/` directory)
 - Sample briefs: `briefs/` directory
 - Architecture docs: `docs/architecture.md` (Mermaid)
 - Decision records: `docs/adr/` (numbered markdown files + index)
@@ -238,23 +257,26 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 
 ## Status
 
-🟢 **MVP deployed** — the core creative campaign pipeline runs end-to-end with live progress streaming, deployed to Streamlit Cloud with auto-deploy on push.
+🟢 **Multipage app deployed** — multipage Streamlit frontend with standalone Strategy, Creative, and Workflow modules. Deployed to Streamlit Cloud with auto-deploy on push.
 
 ### Roadmap
 
 **Phase 6 — Refinement (current)**
+- [x] Multipage restructure (st.navigation, shared components, theme extraction)
+- [x] Standalone Strategy page
+- [x] Standalone Creative page
+- [x] Per-provider model configuration
+- [x] Sidebar global parameters (provider, model, philosophy, iterations, threshold)
 - [ ] Human-in-the-loop approval points (LangGraph interrupt/resume)
 - [ ] Structured logging and tracing (LangSmith)
 - [ ] Error handling and graceful degradation
 - [ ] Frontend refinement and UX polish
 
 **Future Modules**
-- [ ] Strategy - Standalone strategy agent(s) (e.g. Brand positioning, Creative brief writer)
-- [ ] Creative - Standalone creative agent(s) (e.g. Campaign creative, Copywriter, Art Director, Social creative, AV creative..)
-- [ ] Creative tool - a suite of creative tools (Provider comparison tooling)
-- [ ] Marketing - Standalone marketing agent(s) (e.g. Client brief writer)
-- [ ] Production (e.g. Image, Audio, Film, Social content)
-
+- [ ] Tools - a suite of creative tools (page visible with holding message)
+- [ ] Marketing - Standalone marketing agent(s) (placeholder page exists)
+- [ ] Production - Production services (e.g. Image, Audio, Film, Social content generation) (placeholder page exists)
+- [ ] Agnostic - Miscellaneous (placeholder page exists)
 ---
 
 ## Getting Started

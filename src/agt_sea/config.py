@@ -18,7 +18,7 @@ load_dotenv()
 
 
 # ---------------------------------------------------------------------------
-# Bridge st.secrets → os.environ for Streamlit Cloud
+# Bridge st.secrets -> os.environ for Streamlit Cloud
 # ---------------------------------------------------------------------------
 # LangChain providers read API keys directly from os.environ
 # (e.g. ANTHROPIC_API_KEY). On Streamlit Cloud, secrets live in
@@ -41,14 +41,14 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
-# Secret / env var helper — .env first, then st.secrets fallback
+# Secret / env var helper -- .env first, then st.secrets fallback
 # ---------------------------------------------------------------------------
 
 def _get_secret(key: str, default: str | None = None) -> str | None:
     """Read a value from environment variables, falling back to
     Streamlit secrets when running on Streamlit Cloud.
 
-    Priority: os.environ (.env) → st.secrets → default
+    Priority: os.environ (.env) -> st.secrets -> default
     """
     value = os.environ.get(key)
     if value:
@@ -71,8 +71,6 @@ def _get_secret(key: str, default: str | None = None) -> str | None:
 
 def get_llm_provider() -> LLMProvider:
     """Return the active LLM provider, defaulting to Anthropic."""
-    
-    # [NO STREAMLIT APPROACH 1/4] raw = (os.getenv("LLM_PROVIDER") or "anthropic").lower() #sm: previous: raw = os.getenv("LLM_PROVIDER", "anthropic").lower()
     raw = (_get_secret("LLM_PROVIDER") or "anthropic").lower()
     try:
         return LLMProvider(raw)
@@ -84,32 +82,37 @@ def get_llm_provider() -> LLMProvider:
 
 
 # ---------------------------------------------------------------------------
-# Model names — one per provider
+# Model names -- one per provider, with per-provider secret overrides
 # ---------------------------------------------------------------------------
 
 DEFAULT_MODELS: dict[LLMProvider, str] = {
-    LLMProvider.ANTHROPIC: "claude-sonnet-4-6", # "claude-haiku-4-5-20251001" | "claude-sonnet-4-6" | "claude-opus-4-6" | "claude-sonnet-4-5-20250929" | "claude-sonnet-4-20250514"
-    LLMProvider.GOOGLE: "gemini-2.5-flash", # "gemini-3-flash-preview" | gemini-3-pro-preview" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-2.0-flash"
-    LLMProvider.OPENAI: "gpt-4o", # 
+    LLMProvider.ANTHROPIC: "claude-sonnet-4-6",
+    LLMProvider.GOOGLE: "gemini-3-flash-preview",
+    LLMProvider.OPENAI: "gpt-5.4-mini",
+}
+
+_PROVIDER_MODEL_KEYS: dict[LLMProvider, str] = {
+    LLMProvider.ANTHROPIC: "ANTHROPIC_MODEL",
+    LLMProvider.GOOGLE: "GOOGLE_MODEL",
+    LLMProvider.OPENAI: "OPENAI_MODEL",
 }
 
 
 def get_model_name(provider: LLMProvider | None = None) -> str:
     """Return the model name for the given provider.
 
-    Can be overridden via MODEL_NAME env var / secret.
+    Checks for a provider-specific secret first (e.g. ANTHROPIC_MODEL),
+    then falls back to DEFAULT_MODELS. This allows Streamlit Cloud to
+    set cost-controlled models per provider independently.
     """
     provider = provider or get_llm_provider()
-    # [NO STREAMLIT APPROACH 2/4] return (os.getenv("MODEL_NAME") or DEFAULT_MODELS[provider]) #sm return os.getenv("MODEL_NAME", DEFAULT_MODELS[provider])
-    return _get_secret("MODEL_NAME") or DEFAULT_MODELS[provider]
+    secret_key = _PROVIDER_MODEL_KEYS[provider]
+    return _get_secret(secret_key) or DEFAULT_MODELS[provider]
 
 
 # ---------------------------------------------------------------------------
 # Workflow defaults
 # ---------------------------------------------------------------------------
 
-# [NO STREAMLIT APPROACH 3/4] MAX_ITERATIONS: int = int(os.getenv("MAX_ITERATIONS") or "5") #sm MAX_ITERATIONS: int = int(os.getenv("MAX_ITERATIONS", "5"))
-# [NO STREAMLIT APPROACH 4/4] APPROVAL_THRESHOLD: float = float(os.getenv("APPROVAL_THRESHOLD") or "80.0") #sm APPROVAL_THRESHOLD: float = float(os.getenv("APPROVAL_THRESHOLD", "80.0"))
-MAX_ITERATIONS: int = int(_get_secret("MAX_ITERATIONS") or "5")
-APPROVAL_THRESHOLD: float = float(_get_secret("APPROVAL_THRESHOLD") or "85.0")
-
+MAX_ITERATIONS: int = int(_get_secret("MAX_ITERATIONS") or "3")
+APPROVAL_THRESHOLD: float = float(_get_secret("APPROVAL_THRESHOLD") or "80.0")

@@ -23,7 +23,7 @@ uv run ruff check .                        # Lint
 - LangGraph for orchestration, LangChain for LLM abstraction
 - Pydantic for data models and structured output (`with_structured_output()`)
 - Streamlit for frontend, deployed to Streamlit Cloud
-- Default LLM: Anthropic (claude-sonnet-4-6), switchable via `LLM_PROVIDER` env var
+- Default LLM: Anthropic (claude-sonnet-4-6), switchable via `LLM_PROVIDER` env var or sidebar selector
 
 ## Project Structure
 
@@ -33,8 +33,15 @@ src/agt_sea/
 ├── agents/                  # One file per agent (strategist, creative, creative_director)
 ├── graph/workflow.py        # LangGraph graph definition, routing, finalisation nodes
 ├── llm/provider.py          # Provider-agnostic LLM factory (get_llm())
-└── models/state.py          # Pydantic models (AgencyState, CDEvaluation, AgentOutput) and enums
-frontend/app.py              # Streamlit app (sys.path hack for Streamlit Cloud at top)
+├── models/state.py          # Pydantic models (AgencyState, CDEvaluation, AgentOutput) and enums
+└── prompts/
+    ├── loader.py            # load_philosophy_prompt() — reads prompt text from disk
+    └── philosophies/        # One .txt file per CreativePhilosophy enum value
+frontend/
+├── app.py                   # Navigation shell (sys.path hack, page config, theme, sidebar, routing)
+├── pages/                   # One file per module (strategy, creative, workflow, tools + placeholders)
+├── components/              # Reusable UI components (sidebar, agent_output, history, progress, etc.)
+└── themes/b3ta.css          # Theme CSS (single file, loaded once by app.py)
 tests/                       # Integration tests — make real LLM calls, no mocks
 briefs/                      # Sample client briefs
 docs/adr/                    # Architecture Decision Records (see @docs/adr/index.md)
@@ -54,7 +61,8 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 - Routing functions are pure: return strings only, NEVER mutate state
 - State changes before END happen in dedicated finalisation nodes, not routing functions
 - `config.py` uses `_get_secret()` which checks os.environ first, then st.secrets (for Streamlit Cloud)
-- API keys are bridged from st.secrets → os.environ at module load so LangChain providers can find them
+- API keys are bridged from st.secrets -> os.environ at module load so LangChain providers can find them
+- `get_llm()` accepts optional `provider` and `model` parameters for frontend sidebar overrides
 
 ## Agent Conventions
 
@@ -71,22 +79,28 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 - Commit messages: imperative mood, conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
 - ADRs are append-only — new decisions get new numbered files, never edit old ones
 - When adding a new agent, follow the pattern in `agents/strategist.py`
+- Explain your reasoning before making changes — what you're doing, why, and what alternatives you considered
+- When introducing a new pattern or concept, explain it as if teaching a mid-level developer
 
 ## Deployment
 
 - Streamlit Cloud auto-deploys from main branch
 - `frontend/app.py` has `sys.path.insert` at top to resolve `agt_sea` imports on Streamlit Cloud
+- Page files loaded via `st.Page()` run in the same process, so `sys.path` is already set when they execute
 - API keys and config overrides go in Streamlit Cloud secrets dashboard, not .env
-- Production uses `MODEL_NAME = claude-haiku-4-5-20251001` via Streamlit secret for cost control
+- Per-provider model secrets (`ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL`) override defaults on Cloud for cost control
 
 ## Current Phase & Roadmap
 
 **Current:** MODULE 01) Phase 6 — Refinement (error handling, human-in-the-loop, logging/tracing)
 
+**Multipage restructure complete** — frontend is now a multipage Streamlit app with `st.navigation()`. See `docs/SPEC-multipage.md` for the full spec.
+
 **Modules planned:**
-1. Workflows - Creative Campaign Development (Strategist - Creative brief writer → Creative → CD loop) ← SPRINT 1 COMPLETE, deployed
-2. Strategy - Standalone strategy agent(s) (e.g. Brand positioning, Creative brief writer)
-3. Creative - Standalone creative agent(s) (e.g. Campaign creative, Copywriter, Art Director, Social creative, AV creative..)
-4. Creative tools - a suite of creative tools
-5. Marketing - Standalone marketing agent(s) (e.g. Client brief writer)
-6. Production (e.g. Image, Audio, Film, Social content)
+1. Workflows - Creative Campaign Development (Strategist -> Creative -> CD loop) — COMPLETE, deployed
+2. Strategy - Standalone strategist page — COMPLETE (standalone, calls `run_strategist()` directly)
+3. Creative - Standalone creative page — COMPLETE (standalone, calls `run_creative()` directly)
+4. Tools - a suite of creative tools (Tools page visible with holding message)
+5. Marketing - Standalone marketing agent(s) (placeholder page exists, not visible)
+6. Production - Production services (e.g. Image, Audio, Film, Social content generation) (placeholder page exists, not visible)
+7. Agnostic - Miscellaneous (placeholder page exists, not visible)
