@@ -7,7 +7,7 @@ three distinct creative approaches to the campaign.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -80,8 +80,9 @@ def run_creative(state: AgencyState) -> AgencyState:
     Returns:
         Updated state with the creative concept and history entry.
     """
-    llm = get_llm()
-    provider = get_llm_provider()
+    provider = state.llm_provider or get_llm_provider()
+    model = state.llm_model or get_model_name(provider)
+    llm = get_llm(provider=provider, model=model)
 
     # First iteration: work from brief only
     # Subsequent iterations: incorporate CD feedback
@@ -122,10 +123,10 @@ def run_creative(state: AgencyState) -> AgencyState:
         AgentOutput(
             agent=AgentRole.CREATIVE,
             provider=provider,
-            model=get_model_name(provider),
+            model=model,
             iteration=state.iteration,
             content=creative_concept,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
         )
     )
 

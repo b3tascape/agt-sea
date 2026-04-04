@@ -9,16 +9,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from agt_sea.models.state import CreativePhilosophy
-
-
-_PHILOSOPHY_LABELS: dict[CreativePhilosophy, str] = {
-    CreativePhilosophy.BOLD_AND_DISRUPTIVE: "bold & disruptive",
-    CreativePhilosophy.MINIMAL_AND_REFINED: "minimal & refined",
-    CreativePhilosophy.EMOTIONALLY_DRIVEN: "emotionally driven",
-    CreativePhilosophy.DATA_LED: "data led",
-    CreativePhilosophy.CULTURALLY_PROVOCATIVE: "culturally provocative",
-}
+from components.labels import PHILOSOPHY_LABELS
 
 
 def render_run_metadata(state: dict) -> None:
@@ -35,7 +26,7 @@ def render_run_metadata(state: dict) -> None:
     col2.metric("history", len(state.get("history", [])))
 
     philosophy = state.get("creative_philosophy")
-    col3.metric("philosophy", _PHILOSOPHY_LABELS.get(philosophy, ""))
+    col3.metric("philosophy", PHILOSOPHY_LABELS.get(philosophy, ""))
 
     status = state.get("status")
     col4.metric("status", status.value if status else "")

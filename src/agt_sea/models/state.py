@@ -7,7 +7,7 @@ plus supporting models for structured evaluation and iteration history.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -63,7 +63,11 @@ class CDEvaluation(BaseModel):
         ...,
         ge=0,
         le=100,
-        description="Quality score out of 100. Threshold for approval is 85.",
+        description=(
+            "Quality score out of 100. The approval threshold is "
+            "configurable per run via AgencyState.approval_threshold "
+            "(default 80.0)."
+        ),
     )
     strengths: list[str] = Field(
         default_factory=list,
@@ -92,7 +96,7 @@ class AgentOutput(BaseModel):
         description="The iteration number when this output was produced.",
     )
     content: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     evaluation: CDEvaluation | None = Field(
         default=None,
         description="Present only when agent is creative_director.",
@@ -119,6 +123,22 @@ class AgencyState(BaseModel):
     creative_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.BOLD_AND_DISRUPTIVE,
         description="The creative lens the CD uses to evaluate and direct work.",
+    )
+
+    # --- LLM overrides (optional — fall back to config defaults when None) ---
+    llm_provider: LLMProvider | None = Field(
+        default=None,
+        description=(
+            "Optional provider override. When None, agents fall back to the "
+            "provider from config (env var / st.secrets / default)."
+        ),
+    )
+    llm_model: str | None = Field(
+        default=None,
+        description=(
+            "Optional model-name override. When None, agents fall back to "
+            "get_model_name(provider) from config."
+        ),
     )
 
     # --- Agent outputs (latest for quick access) ---

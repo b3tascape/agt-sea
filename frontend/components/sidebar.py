@@ -12,20 +12,14 @@ import os
 import streamlit as st
 
 from agt_sea.config import get_model_name
-from agt_sea.models.state import CreativePhilosophy, LLMProvider
+from agt_sea.models.state import LLMProvider
+
+from components.labels import PHILOSOPHY_LABELS
 
 
 # ---------------------------------------------------------------------------
 # Display labels
 # ---------------------------------------------------------------------------
-
-_PHILOSOPHY_LABELS: dict[CreativePhilosophy, str] = {
-    CreativePhilosophy.BOLD_AND_DISRUPTIVE: "bold & disruptive",
-    CreativePhilosophy.MINIMAL_AND_REFINED: "minimal & refined",
-    CreativePhilosophy.EMOTIONALLY_DRIVEN: "emotionally driven",
-    CreativePhilosophy.DATA_LED: "data led",
-    CreativePhilosophy.CULTURALLY_PROVOCATIVE: "culturally provocative",
-}
 
 _PROVIDER_MODELS: dict[LLMProvider, list[str]] = {
     LLMProvider.ANTHROPIC: [
@@ -57,15 +51,13 @@ def render_sidebar() -> None:
         creative_philosophy, llm_provider, llm_model,
         max_iterations, approval_threshold
     """
-    # --- Logo ---
-    st.sidebar.markdown("# { agt_sea }")
-    st.sidebar.markdown("---")
+    # Logo is rendered via st.logo() in app.py, above the page nav.
 
     # --- Creative Philosophy ---
     selected_philosophy = st.sidebar.selectbox(
         "CREATIVE PHILOSOPHY",
-        options=list(_PHILOSOPHY_LABELS.keys()),
-        format_func=lambda x: _PHILOSOPHY_LABELS[x],
+        options=list(PHILOSOPHY_LABELS.keys()),
+        format_func=lambda x: PHILOSOPHY_LABELS[x],
         help="Sets the Creative Director's evaluation lens.",
     )
     st.session_state.creative_philosophy = selected_philosophy

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 40" preserveAspectRatio="xMinYMid meet">
+  <text
+    x="0"
+    y="30"
+    font-family="'Cormorant Garamond', Georgia, 'Times New Roman', serif"
+    font-size="32"
+    font-weight="400"
+    fill="#333333"
+    letter-spacing="-0.5"
+  >{ agt_sea }</text>
+</svg>

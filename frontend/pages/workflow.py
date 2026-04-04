@@ -57,6 +57,8 @@ with tab_campaign:
             creative_philosophy=st.session_state.creative_philosophy,
             max_iterations=st.session_state.max_iterations,
             approval_threshold=st.session_state.approval_threshold,
+            llm_provider=st.session_state.llm_provider,
+            llm_model=st.session_state.llm_model,
         )
 
         progress_container = st.container()

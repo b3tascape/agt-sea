@@ -33,6 +33,24 @@ section[data-testid="stSidebar"] {
     border-right: 1.5px solid var(--dark) !important;
 }
 
+/* Logo is rendered via st.logo() in app.py (themes/logo.svg).
+   Override st.logo's size="large" (32px) to bump it slightly, and
+   add a divider line below the logo's header container. */
+img[data-testid="stLogo"] {
+    height: 42px !important;
+    max-height: 42px !important;
+    width: auto !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stSidebarHeader"] {
+    display: flex !important;
+    align-items: flex-end !important;
+    border-bottom: 1px solid rgba(51, 51, 51, 0.3) !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 0.5rem !important;
+    margin-bottom: 1.25rem !important;
+}
+
 section[data-testid="stSidebar"] .stMarkdown p {
     font-family: var(--body-font) !important;
     font-size: 14px !important;
@@ -55,13 +73,29 @@ section[data-testid="stSidebar"] h1 {
     letter-spacing: -0.5px;
 }
 
-section[data-testid="stSidebar"] .stSelectbox label {
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stNumberInput label {
     font-family: var(--alt-heading-font) !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     color: var(--dark) !important;
     text-transform: uppercase;
     letter-spacing: 1.5px;
+}
+
+/* --- Sidebar nav links (Strategy / Creative / Workflow / Tools) --- */
+section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a,
+section[data-testid="stSidebar"] [data-testid="stSidebarNav"] a *,
+section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"],
+section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"] * {
+    color: var(--dark) !important;
+}
+
+/* Divider between nav and global parameters */
+section[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
+    border-bottom: 1px solid rgba(51, 51, 51, 0.3) !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
 }
 
 /* --- Horizontal rules --- */

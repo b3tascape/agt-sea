@@ -52,6 +52,8 @@ if run_button and brief_text:
         state = AgencyState(
             client_brief=brief_text,
             creative_philosophy=st.session_state.creative_philosophy,
+            llm_provider=st.session_state.llm_provider,
+            llm_model=st.session_state.llm_model,
         )
         result = run_strategist(state)
 

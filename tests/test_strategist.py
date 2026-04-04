@@ -7,22 +7,10 @@ Tests the Strategist agent in isolation with a sample client brief.
 This is a manual integration test — it makes a real LLM call.
 """
 
-from pathlib import Path
-
 from agt_sea.agents.strategist import run_strategist
 from agt_sea.models.state import AgencyState
 
-# ---------------------------------------------------------------------------
-# Load sample brief
-# ---------------------------------------------------------------------------
-
-BRIEFS_DIR = Path(__file__).parent.parent / "briefs"
-
-
-def load_brief(filename: str = "sample_brief_001.txt") -> str:
-    """Load a client brief from the briefs directory."""
-    brief_path = BRIEFS_DIR / filename
-    return brief_path.read_text().strip()
+from _helpers import load_brief, print_entry_fields
 
 
 def main():
@@ -39,10 +27,7 @@ def main():
     print("=" * 60)
     print(f"Status: {state.status}")
     print(f"History entries: {len(state.history)}")
-    print(f"Agent: {state.history[0].agent}")
-    print(f"Provider: {state.history[0].provider}")
-    print(f"Model: {state.history[0].model}")
-    print(f"Date: {state.history[0].timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+    print_entry_fields(state.history[0])
     print("-" * 60)
     print("=" * 60)
     print("")

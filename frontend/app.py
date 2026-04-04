@@ -35,7 +35,16 @@ theme_css = (Path(__file__).parent / "themes" / "b3ta.css").read_text()
 st.markdown(f"<style>{theme_css}</style>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Sidebar — logo, global parameters, footer
+# Logo — st.logo() renders above st.navigation's page links natively
+# ---------------------------------------------------------------------------
+
+st.logo(
+    str(Path(__file__).parent / "themes" / "logo.svg"),
+    size="large",
+)
+
+# ---------------------------------------------------------------------------
+# Sidebar — global parameters, footer
 # ---------------------------------------------------------------------------
 
 from components.sidebar import render_sidebar  # noqa: E402

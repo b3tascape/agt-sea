@@ -9,23 +9,12 @@ with the approval/revision loop. This is a manual integration test that
 makes real LLM calls.
 """
 
-from pathlib import Path
 from datetime import datetime
 
 from agt_sea.graph.workflow import agency_graph
 from agt_sea.models.state import AgencyState, AgentRole, WorkflowStatus
 
-# ---------------------------------------------------------------------------
-# Load sample brief
-# ---------------------------------------------------------------------------
-
-BRIEFS_DIR = Path(__file__).parent.parent / "briefs"
-
-
-def load_brief(filename: str = "sample_brief_001.txt") -> str:
-    """Load a client brief from the briefs directory."""
-    brief_path = BRIEFS_DIR / filename
-    return brief_path.read_text().strip()
+from _helpers import load_brief, print_entry_fields
 
 
 def print_header(title: str):
@@ -37,15 +26,9 @@ def print_header(title: str):
 
 
 def print_metadata(entry):
-    """Print metadata for a history entry."""
+    """Print bordered metadata for a history entry."""
     print("=" * 60)
-    print(f"  Agent: {entry.agent}")
-    print(f"  Provider: {entry.provider}")
-    print(f"  Model: {entry.model}")
-    print(f"  Iteration: {entry.iteration}")
-    print(f"  Date: {entry.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
-    if entry.evaluation:
-        print(f"  Score: {entry.evaluation.score}/100")
+    print_entry_fields(entry, indent="  ")
     print("=" * 60)
     print("")
 

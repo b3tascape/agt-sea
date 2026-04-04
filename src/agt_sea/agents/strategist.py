@@ -7,7 +7,7 @@ that will guide the Creative agent's idea generation.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -57,8 +57,9 @@ def run_strategist(state: AgencyState) -> AgencyState:
     Returns:
         Updated state with the creative brief and history entry.
     """
-    llm = get_llm()
-    provider = get_llm_provider()
+    provider = state.llm_provider or get_llm_provider()
+    model = state.llm_model or get_model_name(provider)
+    llm = get_llm(provider=provider, model=model)
 
     messages = [
         SystemMessage(content=STRATEGIST_SYSTEM_PROMPT),
@@ -78,10 +79,10 @@ def run_strategist(state: AgencyState) -> AgencyState:
         AgentOutput(
             agent=AgentRole.STRATEGIST,
             provider=provider,
-            model=get_model_name(provider),
+            model=model,
             iteration=state.iteration,
             content=creative_brief,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
         )
     )
 

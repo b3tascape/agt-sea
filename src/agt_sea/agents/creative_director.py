@@ -9,7 +9,7 @@ philosophy.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -69,8 +69,9 @@ def run_creative_director(state: AgencyState) -> AgencyState:
     Returns:
         Updated state with the CD evaluation and history entry.
     """
-    llm = get_llm()
-    provider = get_llm_provider()
+    provider = state.llm_provider or get_llm_provider()
+    model = state.llm_model or get_model_name(provider)
+    llm = get_llm(provider=provider, model=model)
 
     system_prompt = _build_system_prompt(state.creative_philosophy)
 
@@ -96,7 +97,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
         AgentOutput(
             agent=AgentRole.CREATIVE_DIRECTOR,
             provider=provider,
-            model=get_model_name(provider),
+            model=model,
             iteration=state.iteration,
             content=(
                 f"Score: {evaluation.score}/100\n"
@@ -105,7 +106,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
                 f"Direction: {evaluation.direction}"
             ),
             evaluation=evaluation,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
         )
     )
 
