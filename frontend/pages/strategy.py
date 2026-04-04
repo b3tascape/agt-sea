@@ -20,8 +20,7 @@ from components.footer import render_footer
 # Page content
 # ---------------------------------------------------------------------------
 
-st.title("{ agt_sea }")
-st.markdown("### strategy")
+st.title("{ strategy }")
 st.markdown(
     "Submit a client brief and the **strategist** will transform it "
     "into a structured creative brief — challenge, audience, insight, "

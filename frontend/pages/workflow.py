@@ -27,7 +27,7 @@ from components.run_metadata import render_run_metadata
 (tab_campaign,) = st.tabs(["Creative Campaign"])
 
 with tab_campaign:
-    st.title("{ agt_sea }")
+    st.title("{ workflow }")
     st.markdown("### submit your brief")
 
     brief_text = st.text_area(

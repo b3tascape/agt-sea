@@ -20,8 +20,7 @@ from components.footer import render_footer
 # Page content
 # ---------------------------------------------------------------------------
 
-st.title("{ agt_sea }")
-st.markdown("### creative")
+st.title("{ creative }")
 st.markdown(
     "Submit a creative brief and the **creative** will generate three "
     "distinct campaign concepts — each with a title, core idea, "
