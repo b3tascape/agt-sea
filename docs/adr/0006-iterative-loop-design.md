@@ -1,6 +1,6 @@
 # ADR 0006: Iterative Creative Loop with Bounded Execution
 
-**Status:** Accepted  
+**Status:** Accepted (thresholds superseded by [ADR 0007](0007-revised-loop-thresholds.md); structural design still in force)
 **Date:** 2026-02-15
 
 ## Context

@@ -115,7 +115,17 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 
 **State design**: Dual access pattern — latest outputs at top level (`creative_brief`, `creative_concept`, `cd_evaluation`) for quick access by downstream agents, plus a full ordered `history: list[AgentOutput]` for traceability and UI display.
 
-**Key fields on AgencyState**: `approval_threshold` (default 80.0), `max_iterations` (default 3), `creative_philosophy` (default bold_and_disruptive), `iteration` (incremented by Creative agent), `status` (tracks workflow lifecycle).
+**Key fields on AgencyState**:
+- `client_brief` — the raw brief supplied by the user
+- `creative_philosophy` (default `bold_and_disruptive`) — shapes the CD's evaluation lens
+- `llm_provider` (optional override) — when set, agents use this provider instead of the config default. Populated from the sidebar selector on each run.
+- `llm_model` (optional override) — when set, agents use this model name instead of `get_model_name(provider)`. Populated from the sidebar selector on each run.
+- `approval_threshold` (default `80.0`) — minimum CD score required for approval
+- `max_iterations` (default `3`) — hard cap on creative loop iterations
+- `iteration` — incremented by the Creative agent on each pass
+- `status` — tracks workflow lifecycle via `WorkflowStatus` enum
+
+Thresholds and max iterations are set per [ADR 0007](docs/adr/0007-revised-loop-thresholds.md), which supersedes the original values from [ADR 0006](docs/adr/0006-iterative-loop-design.md).
 
 ---
 
@@ -143,7 +153,6 @@ Settings include: LLM provider, model name per provider, max iterations, approva
 agt_sea/
 ├── docs/
 │   ├── architecture.md              # Mermaid graph diagram
-│   ├── SPEC-multipage.md            # Multipage restructure spec
 │   └── adr/                         # Architecture Decision Records
 ├── src/
 │   └── agt_sea/
@@ -162,6 +171,7 @@ agt_sea/
 │       │   ├── loader.py            # load_philosophy_prompt() — reads prompt text from disk
 │       │   └── philosophies/        # One .txt file per CreativePhilosophy enum value
 ├── tests/
+│   ├── _helpers.py                  # Shared test utilities (load_brief, print_entry_fields)
 │   ├── test_strategist.py           # Strategist isolation test
 │   ├── test_creative.py             # Strategist -> Creative test
 │   └── test_pipeline.py             # Full pipeline integration test
@@ -181,7 +191,8 @@ agt_sea/
 │   │   ├── history.py               # Pipeline history expanders
 │   │   ├── run_metadata.py          # Run metrics bar
 │   │   ├── progress.py              # Live node progress
-│   │   └── footer.py                # Footer badge
+│   │   ├── footer.py                # Footer badge
+│   │   └── labels.py                # Shared enum → display-label mappings
 │   └── themes/
 │       └── b3ta.css                 # Theme CSS
 ├── briefs/
@@ -204,7 +215,7 @@ agt_sea/
 - Enums for fixed vocabularies (providers, roles, statuses, philosophies) — never raw strings
 - Config-driven where possible — defaults in code, environment overrides them
 - Conventional commits style for commit messages (imperative mood)
-- ADRs are append-only — new decisions get new numbered files, old ones are superseded not edited
+- ADRs are append-only — new decisions get new numbered files; older ADRs are superseded rather than edited, with only the `Status:` line updated to flag the supersession
 - All new files should follow existing patterns in the codebase
 
 ## File Conventions
@@ -214,7 +225,7 @@ agt_sea/
 - Agent system prompts: inline in agent files (future: move to `prompts/` directory)
 - Sample briefs: `briefs/` directory
 - Architecture docs: `docs/architecture.md` (Mermaid)
-- Decision records: `docs/adr/` (numbered markdown files + index)
+- Decision records: `docs/adr/` (numbered markdown files + README index)
 
 ## Key Design Principles
 
@@ -239,7 +250,8 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 - **ADR 0003** — Pydantic for state and data modelling
 - **ADR 0004** — Structured output for CD evaluation
 - **ADR 0005** — Streamlit for frontend
-- **ADR 0006** — Iterative creative loop with bounded execution
+- **ADR 0006** — Iterative creative loop with bounded execution *(thresholds superseded by ADR 0007)*
+- **ADR 0007** — Revised creative loop thresholds (80 / 3)
 
 ## Build Sequence
 

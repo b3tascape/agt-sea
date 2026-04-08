@@ -40,11 +40,24 @@ src/agt_sea/
 frontend/
 ├── app.py                   # Navigation shell (sys.path hack, page config, theme, sidebar, routing)
 ├── pages/                   # One file per module (strategy, creative, workflow, tools + placeholders)
-├── components/              # Reusable UI components (sidebar, agent_output, history, progress, etc.)
+├── components/
+│   ├── sidebar.py           # Logo, global params, footer
+│   ├── agent_output.py      # Single agent output display
+│   ├── history.py           # Pipeline history expanders
+│   ├── run_metadata.py      # Run metrics bar
+│   ├── progress.py          # Live node progress
+│   ├── footer.py            # Footer badge
+│   └── labels.py            # Shared enum → display-label mappings
 └── themes/b3ta.css          # Theme CSS (single file, loaded once by app.py)
-tests/                       # Integration tests — make real LLM calls, no mocks
+tests/
+├── _helpers.py              # Shared utilities for manual integration tests
+├── test_strategist.py       # Strategist isolation test
+├── test_creative.py         # Strategist → Creative test
+└── test_pipeline.py         # Full pipeline integration test
 briefs/                      # Sample client briefs
-docs/adr/                    # Architecture Decision Records (see @docs/adr/index.md)
+docs/
+├── architecture.md          # Mermaid workflow diagram
+└── adr/                     # Architecture Decision Records (see @docs/adr/README.md)
 ```
 
 ## Code Style
@@ -60,6 +73,8 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 - State flows through `AgencyState` (Pydantic) — agents read what they need, update fields, append to `history`
 - Routing functions are pure: return strings only, NEVER mutate state
 - State changes before END happen in dedicated finalisation nodes, not routing functions
+- **Pass-through nodes are allowed** where a conditional edge needs a source node but no state mutation is required (e.g. `check_iterations` in `graph/workflow.py` is `lambda state: state`). The decision itself lives in the routing function attached to the node's conditional edges — this keeps routing pure while giving LangGraph the node it needs to branch from.
+- **LangGraph boundary — Pydantic in, dict out.** `AgencyState` is passed *into* `graph.invoke()` / `graph.stream()` as a Pydantic model, but the object returned (and the per-node outputs yielded by `stream()`) are **dicts**, not Pydantic models. Frontend and test code must use `.get("field")` or `state["field"]` access on graph outputs — not attribute access. Inside agent functions (which receive state *before* it crosses the graph boundary), attribute access still works. **Known follow-up:** the cleaner fix is to rehydrate with `AgencyState.model_validate(raw)` at the boundary so downstream code keeps full typing. Deferred until Phase 6 refactor — HITL work will touch this area anyway, and LangGraph 1.x Pydantic-state handling should be re-checked against current docs before committing to an approach.
 - `config.py` uses `_get_secret()` which checks os.environ first, then st.secrets (for Streamlit Cloud)
 - API keys are bridged from st.secrets -> os.environ at module load so LangChain providers can find them
 - `get_llm()` accepts optional `provider` and `model` parameters for frontend sidebar overrides
@@ -68,6 +83,7 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 
 - Each agent function signature: `def run_agent(state: AgencyState) -> AgencyState`
 - Each agent must: call `get_llm()`, update relevant state fields, append `AgentOutput` to `state.history`
+- Each agent resolves provider/model as: `state.llm_provider or get_llm_provider()` and `state.llm_model or get_model_name(provider)` — this is how sidebar overrides reach the agents via `AgencyState.llm_provider` / `AgencyState.llm_model`
 - `AgentOutput` must include: `agent`, `provider`, `model` (via `get_model_name()`), `iteration`, `content`, `timestamp`
 - Creative Director uses `llm.with_structured_output(CDEvaluation)` for validated scoring
 - Creative agent checks `state.cd_evaluation is not None` to determine initial vs revision path
@@ -77,7 +93,7 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 - Run tests after making changes to agents or graph logic
 - Run `ruff check .` before committing
 - Commit messages: imperative mood, conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
-- ADRs are append-only — new decisions get new numbered files, never edit old ones
+- ADRs are append-only — new decisions get new numbered files, never edit old ones. The one exception is updating the `Status:` line of an older ADR to flag that it has been superseded (see ADR 0006 → 0007).
 - When adding a new agent, follow the pattern in `agents/strategist.py`
 - Explain your reasoning before making changes — what you're doing, why, and what alternatives you considered
 - When introducing a new pattern or concept, explain it as if teaching a mid-level developer
@@ -94,7 +110,7 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 
 **Current:** MODULE 01) Phase 6 — Refinement (error handling, human-in-the-loop, logging/tracing)
 
-**Multipage restructure complete** — frontend is now a multipage Streamlit app with `st.navigation()`. See `docs/SPEC-multipage.md` for the full spec.
+**Multipage restructure complete** — frontend is a multipage Streamlit app with `st.navigation()`. Shared components live in `frontend/components/`, pages in `frontend/pages/`, theme in `frontend/themes/b3ta.css`.
 
 **Modules planned:**
 1. Workflows - Creative Campaign Development (Strategist -> Creative -> CD loop) — COMPLETE, deployed
@@ -104,3 +120,6 @@ docs/adr/                    # Architecture Decision Records (see @docs/adr/inde
 5. Marketing - Standalone marketing agent(s) (placeholder page exists, not visible)
 6. Production - Production services (e.g. Image, Audio, Film, Social content generation) (placeholder page exists, not visible)
 7. Agnostic - Miscellaneous (placeholder page exists, not visible)
+
+## Ignore these directories
+- `.archive/` — contains snapshots, backups, and completed one-off specs, not working code. Never read from or execute anything in this directory.

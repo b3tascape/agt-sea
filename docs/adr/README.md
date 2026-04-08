@@ -11,4 +11,5 @@ This directory contains the Architecture Decision Records (ADRs) for agt_sea. Ea
 | [0003](0003-pydantic-state-modelling.md) | Pydantic for State and Data Modelling | Accepted |
 | [0004](0004-structured-output-cd-evaluation.md) | Structured Output for CD Evaluation | Accepted |
 | [0005](0005-streamlit-frontend.md) | Streamlit for Frontend Interface | Accepted |
-| [0006](0006-iterative-loop-design.md) | Iterative Creative Loop with Bounded Execution | Accepted |
+| [0006](0006-iterative-loop-design.md) | Iterative Creative Loop with Bounded Execution | Accepted (thresholds superseded by 0007) |
+| [0007](0007-revised-loop-thresholds.md) | Revised Creative Loop Thresholds | Accepted |

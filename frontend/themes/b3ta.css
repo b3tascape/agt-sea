@@ -224,6 +224,17 @@ section[data-testid="stSidebar"] hr {
     border-radius: 0px !important;
 }
 
+/* --- Tabs --- */
+[data-testid="stTabs"] button[role="tab"],
+[data-testid="stTabs"] button[role="tab"] p {
+    color: var(--light-grey) !important;
+}
+
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
+    color: var(--dark) !important;
+}
+
 /* --- Expander --- */
 details {
     border: 1.5px solid var(--dark) !important;

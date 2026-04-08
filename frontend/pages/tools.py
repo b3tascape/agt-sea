@@ -10,5 +10,5 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Tools")
+st.title("{ tools }")
 st.info("This module is in development.")
