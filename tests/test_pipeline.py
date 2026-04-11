@@ -50,13 +50,18 @@ def main():
 
     # --- Run the graph ---
     print("\nRunning pipeline...\n")
-    final_state = agency_graph.invoke(initial_state)
+    raw = agency_graph.invoke(initial_state)
+
+    # Rehydrate the dict LangGraph returns back to AgencyState so the
+    # rest of this script can use attribute access and typed nested
+    # models (AgentOutput, CDEvaluation).
+    final_state = AgencyState.model_validate(raw)
 
     # --- Walk through history ---
     print_header("PIPELINE HISTORY")
 
     iteration = 0
-    for entry in final_state["history"]:
+    for entry in final_state.history:
         if entry.agent == AgentRole.STRATEGIST:
             print("\n--- Strategist ------------------------")
             print_metadata(entry)
@@ -79,23 +84,23 @@ def main():
     print_header("FINAL OUTPUT")
     print("")
     print("=" * 60)
-    print(f"Status: {final_state['status']}")
-    print(f"Total Iterations: {final_state['iteration']}")
-    print(f"History Entries: {len(final_state['history'])}")
+    print(f"Status: {final_state.status}")
+    print(f"Total Iterations: {final_state.iteration}")
+    print(f"History Entries: {len(final_state.history)}")
     print("=" * 60)
 
-    if final_state["status"] == WorkflowStatus.APPROVED:
+    if final_state.status == WorkflowStatus.APPROVED:
         print("")
         print("-" * 60)
         print("✅ Creative work APPROVED")
         print("-" * 60)
-    elif final_state["status"] == WorkflowStatus.MAX_ITERATIONS_REACHED:
+    elif final_state.status == WorkflowStatus.MAX_ITERATIONS_REACHED:
         print("")
         print("-" * 60)
         print("\n⚠️  Max iterations reached — outputting best scoring idea")
         print("-" * 60)
 
-    print(f"\nFinal Creative Concept:\n\n{final_state['creative_concept']}")
+    print(f"\nFinal Creative Concept:\n\n{final_state.creative_concept}")
     print("")
     print("=" * 60)
     print("=" * 60)

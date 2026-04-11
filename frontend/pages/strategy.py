@@ -23,13 +23,13 @@ from components.footer import render_footer
 st.title("{ strategy }")
 st.markdown(
     "Submit a client brief and the **strategist** will transform it "
-    "into a structured creative brief — challenge, audience, insight, "
-    "proposition, and tone."
+    "into a structured creative brief."
 )
 
 brief_text = st.text_area(
     "CLIENT BRIEF",
     height=200,
+    value=st.session_state.get("strategy_brief_input", ""),
     placeholder=(
         "Describe your brand, target audience, campaign objectives, "
         "channels, budget, and timeline..."
@@ -47,17 +47,30 @@ run_button = st.button(
 # ---------------------------------------------------------------------------
 
 if run_button and brief_text:
+    st.session_state.strategy_brief_input = brief_text
     with st.spinner("strategist is writing the creative brief..."):
         state = AgencyState(
             client_brief=brief_text,
+            strategic_philosophy=st.session_state.strategic_philosophy,
             creative_philosophy=st.session_state.creative_philosophy,
+            cd_philosophy=st.session_state.cd_philosophy,
             llm_provider=st.session_state.llm_provider,
             llm_model=st.session_state.llm_model,
         )
         result = run_strategist(state)
+    st.session_state.strategy_result = result
 
+# ---------------------------------------------------------------------------
+# Render persisted result (survives page switches)
+# ---------------------------------------------------------------------------
+
+if "strategy_result" in st.session_state:
+    result = st.session_state.strategy_result
     st.markdown("---")
     st.markdown("### creative brief")
     render_agent_output(result.history[-1])
+
+    if st.toggle("show raw (copyable)", key="strategy_copy_toggle"):
+        st.code(result.history[-1].content, language="markdown")
 
     render_footer()

@@ -16,36 +16,52 @@ from agt_sea.models.state import (
     AgencyState,
     AgentOutput,
     AgentRole,
+    StrategicPhilosophy,
     WorkflowStatus,
 )
 
 from agt_sea.config import get_llm_provider, get_model_name
+from agt_sea.prompts.loader import (
+    load_guidance,
+    load_strategic_philosophy,
+    load_template,
+)
 
-STRATEGIST_SYSTEM_PROMPT = """You are a senior brand strategist at a world-class creative agency.
 
-Your role is to take a raw client brief and transform it into a clear, 
-actionable creative brief that will guide the creative team.
+def _build_system_prompt(philosophy: StrategicPhilosophy) -> str:
+    """Build the strategist system prompt with injected philosophy, template, and guidance.
 
-Your creative brief should include:
+    When philosophy is NEUTRAL, no philosophy section is injected — the
+    prompt reads as if the feature wasn't there at all.
+    """
+    template_text = load_template("creative_brief")
+    proposition_guidance = load_guidance("proposition_101_lite")
 
-1. **Challenge**: What is the core problem or opportunity? Distil the client's 
-   brief into a single, focused challenge statement.
+    philosophy_section = ""
+    if philosophy != StrategicPhilosophy.NEUTRAL:
+        philosophy_text = load_strategic_philosophy(philosophy)
+        philosophy_section = f"\nYour strategic philosophy:\n{philosophy_text}\n"
 
-2. **Audience**: Who are we talking to? Define the primary audience — their 
-   mindset, motivations, and tensions relevant to this brief.
-
-3. **Insight**: What is the human truth or cultural tension that this work 
-   should tap into? This should feel surprising yet obvious.
-
-4. **Proposition**: What is the single most compelling thing we can say or 
-   demonstrate? One sentence maximum.
-
-5. **Tone & Guardrails**: How should this work feel? What should it absolutely 
-   not be?
-
-Be concise and opinionated. A great creative brief is a springboard, not an 
-essay. Take a clear point of view — the creative team needs direction, not 
-options."""
+    return (
+        "You are a senior brand strategist at a world-class creative agency "
+        "renowned for its strategic excellence and award-winning creative output.\n"
+        f"{philosophy_section}\n"
+        "Your role is to take a raw client brief and transform it into a clear, "
+        "actionable creative brief that will guide the creative team.\n\n"
+        "Structure your creative brief using the following format:\n\n"
+        f"{template_text}\n\n"
+        "Replace each [Answer goes here] placeholder with your response. Replace "
+        "[CREATIVE BRIEF TITLE] with a concise, descriptive title for the brief. "
+        "Keep the section headings and overall structure intact. Note that the "
+        "proposition should be bold (wrapped in ** markers) as indicated in the template.\n\n"
+        "PROPOSITION WRITING GUIDANCE\n\n"
+        "The single-minded proposition is the most important element of the brief. "
+        "Use the following guidance when crafting it:\n\n"
+        f"{proposition_guidance}\n\n"
+        "Be concise and opinionated. A great creative brief is a springboard, not an "
+        "essay. Take a clear point of view — the creative team needs direction, not "
+        "options."
+    )
 
 
 def run_strategist(state: AgencyState) -> AgencyState:
@@ -62,7 +78,7 @@ def run_strategist(state: AgencyState) -> AgencyState:
     llm = get_llm(provider=provider, model=model)
 
     messages = [
-        SystemMessage(content=STRATEGIST_SYSTEM_PROMPT),
+        SystemMessage(content=_build_system_prompt(state.strategic_philosophy)),
         HumanMessage(content=(
             f"Here is the client brief:\n\n{state.client_brief}\n\n"
             "Please produce a creative brief."

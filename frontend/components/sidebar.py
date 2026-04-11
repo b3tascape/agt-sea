@@ -11,33 +11,10 @@ import os
 
 import streamlit as st
 
-from agt_sea.config import get_model_name
+from agt_sea.config import AVAILABLE_MODELS, get_model_name
 from agt_sea.models.state import LLMProvider
 
-from components.labels import PHILOSOPHY_LABELS
-
-
-# ---------------------------------------------------------------------------
-# Display labels
-# ---------------------------------------------------------------------------
-
-_PROVIDER_MODELS: dict[LLMProvider, list[str]] = {
-    LLMProvider.ANTHROPIC: [
-        "claude-haiku-4-5-20251001",
-        "claude-sonnet-4-6",
-        "claude-opus-4-6",
-    ],
-    LLMProvider.GOOGLE: [
-        "gemini-3.1-flash-lite-preview",
-        "gemini-3-flash-preview",
-        "gemini-3.1-pro-preview",
-    ],
-    LLMProvider.OPENAI: [
-        "gpt-5.4-nano",
-        "gpt-5.4-mini",
-        "gpt-5.4",
-    ],
-}
+from components.labels import CREATIVE_PHILOSOPHY_LABELS, STRATEGIC_PHILOSOPHY_LABELS
 
 
 # ---------------------------------------------------------------------------
@@ -48,19 +25,35 @@ def render_sidebar() -> None:
     """Render the sidebar: logo, global parameters, and footer.
 
     Writes to st.session_state keys:
-        creative_philosophy, llm_provider, llm_model,
-        max_iterations, approval_threshold
+        strategic_philosophy, creative_philosophy, cd_philosophy,
+        llm_provider, llm_model, max_iterations, approval_threshold
     """
     # Logo is rendered via st.logo() in app.py, above the page nav.
 
-    # --- Creative Philosophy ---
-    selected_philosophy = st.sidebar.selectbox(
-        "CREATIVE PHILOSOPHY",
-        options=list(PHILOSOPHY_LABELS.keys()),
-        format_func=lambda x: PHILOSOPHY_LABELS[x],
+    # --- Philosophy group ---
+    selected_strategic_philosophy = st.sidebar.selectbox(
+        "PHILOSOPHY: STRATEGY",
+        options=list(STRATEGIC_PHILOSOPHY_LABELS.keys()),
+        format_func=lambda x: STRATEGIC_PHILOSOPHY_LABELS[x],
+        help="Sets the Strategist's approach and lens.",
+    )
+    st.session_state.strategic_philosophy = selected_strategic_philosophy
+
+    selected_creative_philosophy = st.sidebar.selectbox(
+        "PHILOSOPHY: CREATIVE",
+        options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+        format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
+        help="Sets the Creative agent's generation lens.",
+    )
+    st.session_state.creative_philosophy = selected_creative_philosophy
+
+    selected_cd_philosophy = st.sidebar.selectbox(
+        "PHILOSOPHY: CD",
+        options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+        format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
         help="Sets the Creative Director's evaluation lens.",
     )
-    st.session_state.creative_philosophy = selected_philosophy
+    st.session_state.cd_philosophy = selected_cd_philosophy
 
     st.sidebar.markdown("---")
 
@@ -82,7 +75,7 @@ def render_sidebar() -> None:
     st.session_state.llm_provider = selected_provider
 
     # --- LLM Model (dynamic based on provider) ---
-    models = _PROVIDER_MODELS[selected_provider]
+    models = AVAILABLE_MODELS[selected_provider]
     default_model = get_model_name(selected_provider)
     default_index = models.index(default_model) if default_model in models else 0
 

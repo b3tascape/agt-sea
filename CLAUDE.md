@@ -29,14 +29,18 @@ uv run ruff check .                        # Lint
 
 ```
 src/agt_sea/
-├── config.py                # Settings, _get_secret() helper, st.secrets bridge
+├── config.py                # Settings, _get_secret() helper, st.secrets bridge, DEFAULT_MODELS + AVAILABLE_MODELS
 ├── agents/                  # One file per agent (strategist, creative, creative_director)
 ├── graph/workflow.py        # LangGraph graph definition, routing, finalisation nodes
 ├── llm/provider.py          # Provider-agnostic LLM factory (get_llm())
 ├── models/state.py          # Pydantic models (AgencyState, CDEvaluation, AgentOutput) and enums
 └── prompts/
-    ├── loader.py            # load_philosophy_prompt() — reads prompt text from disk
-    └── philosophies/        # One .txt file per CreativePhilosophy enum value
+    ├── loader.py            # load_prompt() + load_creative_philosophy / load_strategic_philosophy / load_template / load_guidance wrappers
+    ├── templates/           # Reusable structural scaffolds (e.g. creative_brief.txt)
+    ├── guidance/            # Technique-specific guidance injected into agent prompts
+    └── philosophies/
+        ├── creative/        # One .txt file per CreativePhilosophy enum value
+        └── strategic/       # One .txt file per StrategicPhilosophy enum value
 frontend/
 ├── app.py                   # Navigation shell (sys.path hack, page config, theme, sidebar, routing)
 ├── pages/                   # One file per module (strategy, creative, workflow, tools + placeholders)
@@ -74,10 +78,12 @@ docs/
 - Routing functions are pure: return strings only, NEVER mutate state
 - State changes before END happen in dedicated finalisation nodes, not routing functions
 - **Pass-through nodes are allowed** where a conditional edge needs a source node but no state mutation is required (e.g. `check_iterations` in `graph/workflow.py` is `lambda state: state`). The decision itself lives in the routing function attached to the node's conditional edges — this keeps routing pure while giving LangGraph the node it needs to branch from.
-- **LangGraph boundary — Pydantic in, dict out.** `AgencyState` is passed *into* `graph.invoke()` / `graph.stream()` as a Pydantic model, but the object returned (and the per-node outputs yielded by `stream()`) are **dicts**, not Pydantic models. Frontend and test code must use `.get("field")` or `state["field"]` access on graph outputs — not attribute access. Inside agent functions (which receive state *before* it crosses the graph boundary), attribute access still works. **Known follow-up:** the cleaner fix is to rehydrate with `AgencyState.model_validate(raw)` at the boundary so downstream code keeps full typing. Deferred until Phase 6 refactor — HITL work will touch this area anyway, and LangGraph 1.x Pydantic-state handling should be re-checked against current docs before committing to an approach.
+- **LangGraph boundary — Pydantic in, Pydantic out (rehydrate at the edge).** `AgencyState` is passed *into* `graph.invoke()` / `graph.stream()` as a Pydantic model. LangGraph returns a plain dict (and `stream()` yields per-node dict updates), so every call site that consumes graph output must rehydrate with `AgencyState.model_validate(raw)` before using it. Downstream code then uses attribute access (`state.status`, `state.history[0].evaluation.score`) — never `.get()` or `state["field"]`. For `stream()`, accumulate the per-node updates into a running dict first (`accumulated.update(node_output)`) and rehydrate once at the end — do not assume the last event contains the full state. See `frontend/pages/workflow.py` and `tests/test_pipeline.py` for the canonical pattern. Inside agent functions (which run *before* the boundary) attribute access already works.
 - `config.py` uses `_get_secret()` which checks os.environ first, then st.secrets (for Streamlit Cloud)
 - API keys are bridged from st.secrets -> os.environ at module load so LangChain providers can find them
 - `get_llm()` accepts optional `provider` and `model` parameters for frontend sidebar overrides
+- Selectable model lists for the sidebar live in `config.AVAILABLE_MODELS` (one list per provider). The sidebar imports from there — do not redefine model lists in `frontend/components/sidebar.py`. Any provider's `DEFAULT_MODELS` entry must appear in its `AVAILABLE_MODELS` list or the sidebar default falls back to index 0.
+- Three philosophy fields live on `AgencyState`: `strategic_philosophy` (used by the Strategist), `creative_philosophy` (used by the Creative agent), and `cd_philosophy` (used by the Creative Director). All three default to `NEUTRAL`. The sidebar writes these to `st.session_state.strategic_philosophy`, `st.session_state.creative_philosophy`, and `st.session_state.cd_philosophy`; every page that builds an `AgencyState` must pass all three through.
 
 ## Agent Conventions
 
@@ -87,6 +93,8 @@ docs/
 - `AgentOutput` must include: `agent`, `provider`, `model` (via `get_model_name()`), `iteration`, `content`, `timestamp`
 - Creative Director uses `llm.with_structured_output(CDEvaluation)` for validated scoring
 - Creative agent checks `state.cd_evaluation is not None` to determine initial vs revision path
+- **Philosophy injection pattern** — Strategist, Creative, and Creative Director each build their system prompt via a module-level `_build_system_prompt(philosophy)` helper (Creative also has `_build_revision_prompt`). Each helper follows the *neutral-skip* rule: when the philosophy is `NEUTRAL`, `philosophy_section` stays empty and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded via the appropriate `load_creative_philosophy` / `load_strategic_philosophy` wrapper and injected into a dedicated section. Strategist and Creative read `state.strategic_philosophy` / `state.creative_philosophy` respectively; the Creative Director reads `state.cd_philosophy` (not `state.creative_philosophy`).
+- Strategist prompts are assembled from reusable pieces via `load_template()` (structural scaffold) and `load_guidance()` (technique-specific guidance) — don't hardcode the brief template or proposition guidance inline.
 
 ## Workflow Rules
 
@@ -108,7 +116,7 @@ docs/
 
 ## Current Phase & Roadmap
 
-**Current:** MODULE 01) Phase 6 — Refinement (error handling, human-in-the-loop, logging/tracing)
+**Current:** MODULE 01) Phase 6 — Refinement (error handling, frontend refinement, human-in-the-loop, logging/tracing)
 
 **Multipage restructure complete** — frontend is a multipage Streamlit app with `st.navigation()`. Shared components live in `frontend/components/`, pages in `frontend/pages/`, theme in `frontend/themes/b3ta.css`.
 

@@ -30,13 +30,15 @@ _API_KEY_NAMES = [
     "OPENAI_API_KEY",
 ]
 
+# Streamlit may not be importable in every context (tests, scripts),
+# and st.secrets raises FileNotFoundError when no secrets file is present.
 try:
     import streamlit as st
     if hasattr(st, "secrets"):
         for key in _API_KEY_NAMES:
             if key not in os.environ and key in st.secrets:
                 os.environ[key] = st.secrets[key]
-except Exception:
+except (ImportError, AttributeError, FileNotFoundError):
     pass
 
 
@@ -54,12 +56,14 @@ def _get_secret(key: str, default: str | None = None) -> str | None:
     if value:
         return value
 
-    # Streamlit Cloud stores secrets in st.secrets
+    # Streamlit Cloud stores secrets in st.secrets. Same caveats as the
+    # bridge above — streamlit may not be importable, and st.secrets
+    # raises FileNotFoundError when no secrets file is present.
     try:
         import streamlit as st
         if hasattr(st, "secrets") and key in st.secrets:
             return st.secrets[key]
-    except Exception:
+    except (ImportError, AttributeError, FileNotFoundError):
         pass
 
     return default
@@ -89,6 +93,27 @@ DEFAULT_MODELS: dict[LLMProvider, str] = {
     LLMProvider.ANTHROPIC: "claude-sonnet-4-6",
     LLMProvider.GOOGLE: "gemini-3-flash-preview",
     LLMProvider.OPENAI: "gpt-5.4-mini",
+}
+
+# Full list of models selectable in the frontend sidebar, per provider.
+# The default from DEFAULT_MODELS (or a per-provider secret override) must
+# appear in this list for the sidebar default selection to line up.
+AVAILABLE_MODELS: dict[LLMProvider, list[str]] = {
+    LLMProvider.ANTHROPIC: [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-4-6",
+        "claude-opus-4-6",
+    ],
+    LLMProvider.GOOGLE: [
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3-flash-preview",
+        "gemini-3.1-pro-preview",
+    ],
+    LLMProvider.OPENAI: [
+        "gpt-5.4-nano",
+        "gpt-5.4-mini",
+        "gpt-5.4",
+    ],
 }
 
 _PROVIDER_MODEL_KEYS: dict[LLMProvider, str] = {

@@ -33,6 +33,7 @@ with tab_campaign:
     brief_text = st.text_area(
         "CLIENT BRIEF",
         height=200,
+        value=st.session_state.get("workflow_brief_input", ""),
         placeholder=(
             "Describe your brand, target audience, campaign objectives, "
             "channels, budget, and timeline..."
@@ -50,11 +51,14 @@ with tab_campaign:
     # -------------------------------------------------------------------
 
     if run_button and brief_text:
+        st.session_state.workflow_brief_input = brief_text
         graph = build_graph()
 
         initial_state = AgencyState(
             client_brief=brief_text,
+            strategic_philosophy=st.session_state.strategic_philosophy,
             creative_philosophy=st.session_state.creative_philosophy,
+            cd_philosophy=st.session_state.cd_philosophy,
             max_iterations=st.session_state.max_iterations,
             approval_threshold=st.session_state.approval_threshold,
             llm_provider=st.session_state.llm_provider,
@@ -62,43 +66,51 @@ with tab_campaign:
         )
 
         progress_container = st.container()
-        results_container = st.container()
 
         with progress_container:
             st.markdown("---")
             st.markdown("### pipeline executing...")
 
-            final_state = None
+            # LangGraph's stream yields per-node dict updates. We
+            # accumulate them into a running dict and then rehydrate to
+            # an AgencyState at the end so downstream code can use
+            # attribute access and typed nested models.
+            accumulated: dict = {}
 
             for event in graph.stream(initial_state):
                 for node_name, node_output in event.items():
                     render_node_progress(node_name, node_output)
-                    final_state = node_output
+                    accumulated.update(node_output)
 
-        # ---------------------------------------------------------------
-        # Results
-        # ---------------------------------------------------------------
+            if accumulated:
+                st.session_state.workflow_result = AgencyState.model_validate(
+                    accumulated
+                )
 
-        if final_state:
-            with results_container:
-                st.markdown("---")
+    # -------------------------------------------------------------------
+    # Render persisted result (survives page switches)
+    # -------------------------------------------------------------------
 
-                status = final_state.get("status")
-                if status == WorkflowStatus.APPROVED:
-                    st.success("creative work approved.")
-                elif status == WorkflowStatus.MAX_ITERATIONS_REACHED:
-                    st.warning(
-                        "max iterations reached — showing best scoring idea."
-                    )
+    if "workflow_result" in st.session_state:
+        final_state = st.session_state.workflow_result
 
-                st.markdown("### final creative concept")
-                st.markdown(final_state.get("creative_concept", ""))
+        st.markdown("---")
 
-                st.markdown("---")
-                st.markdown("### pipeline history")
-                render_history(final_state.get("history", []))
+        if final_state.status == WorkflowStatus.APPROVED:
+            st.success("creative work approved.")
+        elif final_state.status == WorkflowStatus.MAX_ITERATIONS_REACHED:
+            st.warning(
+                "max iterations reached — showing best scoring idea."
+            )
 
-                st.markdown("---")
-                render_run_metadata(final_state)
+        st.markdown("### final creative concept")
+        st.markdown(final_state.creative_concept or "")
 
-                render_footer()
+        st.markdown("---")
+        st.markdown("### pipeline history")
+        render_history(final_state.history)
+
+        st.markdown("---")
+        render_run_metadata(final_state)
+
+        render_footer()

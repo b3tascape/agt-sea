@@ -65,20 +65,34 @@ The graph is defined in `graph/workflow.py` using LangGraph's `StateGraph`. Two 
 
 The Creative agent has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history.
 
-The Creative Director uses `with_structured_output(CDEvaluation)` to constrain LLM output to a validated Pydantic model. Evaluation lens is shaped by one of five configurable creative philosophies (bold & disruptive, minimal & refined, emotionally driven, data led, culturally provocative).
+The Creative Director uses `with_structured_output(CDEvaluation)` to constrain LLM output to a validated Pydantic model.
+
+All three agents build their system prompt via a module-level `_build_system_prompt(philosophy)` helper. When the philosophy is `NEUTRAL`, no philosophy section is injected and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded from disk and injected into a dedicated section. The Strategist additionally assembles its prompt from a reusable creative-brief template and proposition guidance via `load_template()` / `load_guidance()`.
 
 
-### Creative Philosophies
+### Philosophies
 
-The Creative Director's evaluation lens is configurable. Each philosophy shapes what "good" looks like:
+Each agent runs through a configurable philosophical lens, set independently in the sidebar and stored on `AgencyState` as `strategic_philosophy`, `creative_philosophy`, and `cd_philosophy`. All three default to `neutral` (no lens injected).
+
+**Creative philosophies** (shared by the Creative agent and Creative Director):
 
 | Philosophy | Lens |
 |-----------|------|
-| Bold & Disruptive | Rewards risk-taking and convention-breaking |
+| Bold & Disruptive | Champions risk-taking and convention-breaking |
 | Minimal & Refined | Values restraint, elegance, and precision |
 | Emotionally Driven | Prioritises genuine human emotion and authenticity |
 | Data Led | Demands strategic rationale grounded in evidence |
-| Culturally Provocative | Rewards cultural participation and relevance |
+| Culturally Provocative | Champions cultural participation and relevance |
+
+**Strategic philosophies** (used by the Strategist):
+
+| Philosophy | Lens |
+|-----------|------|
+| Challenger | Positions the brand against a dominant incumbent or category orthodoxy |
+| Human First | Leads from real human behaviour, needs, and tensions |
+| Cultural Strategy | Reads cultural currents and gives the brand a role in them |
+| Brand World | Builds a coherent brand universe with distinctive codes |
+| Commercial Pragmatist | Prioritises clarity, commercial outcomes, and execution realism |
 
 ---
 
@@ -107,7 +121,7 @@ The framework supports provider switching via configuration — change the `LLM_
 
 Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). This is the single source of truth passed through every graph node.
 
-**Enums**: `WorkflowStatus`, `AgentRole`, `LLMProvider`, `CreativePhilosophy` — all `str, Enum` for type safety and serialisation.
+**Enums**: `WorkflowStatus`, `AgentRole`, `LLMProvider`, `CreativePhilosophy`, `StrategicPhilosophy` — all `str, Enum` for type safety and serialisation. Both philosophy enums include a `NEUTRAL` value that bypasses philosophy injection entirely.
 
 **Supporting models**:
 - `CDEvaluation` — structured evaluation (score 0–100 with validation, strengths, weaknesses, direction)
@@ -115,9 +129,13 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 
 **State design**: Dual access pattern — latest outputs at top level (`creative_brief`, `creative_concept`, `cd_evaluation`) for quick access by downstream agents, plus a full ordered `history: list[AgentOutput]` for traceability and UI display.
 
+**Graph boundary**: LangGraph accepts `AgencyState` on the way in but returns a plain dict on the way out (and `stream()` yields per-node dict updates). Call sites that consume graph output — the Workflow page and the pipeline test — rehydrate with `AgencyState.model_validate(raw)` at the boundary so downstream code uses attribute access and typed nested models (`AgentOutput`, `CDEvaluation`). For streaming, per-node updates are merged into a running dict first and rehydrated once at the end.
+
 **Key fields on AgencyState**:
 - `client_brief` — the raw brief supplied by the user
-- `creative_philosophy` (default `bold_and_disruptive`) — shapes the CD's evaluation lens
+- `strategic_philosophy` (default `neutral`) — shapes the Strategist's lens when writing the creative brief
+- `creative_philosophy` (default `neutral`) — shapes the Creative agent's lens when generating ideas
+- `cd_philosophy` (default `neutral`) — shapes the Creative Director's evaluation lens
 - `llm_provider` (optional override) — when set, agents use this provider instead of the config default. Populated from the sidebar selector on each run.
 - `llm_model` (optional override) — when set, agents use this model name instead of `get_model_name(provider)`. Populated from the sidebar selector on each run.
 - `approval_threshold` (default `80.0`) — minimum CD score required for approval
@@ -137,10 +155,12 @@ A bridge at module load injects API keys from `st.secrets` into `os.environ` so 
 
 Settings include: LLM provider, model name per provider, max iterations, approval threshold. All overridable via environment variables or Streamlit secrets (`LLM_PROVIDER`, `ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL`, `MAX_ITERATIONS`, `APPROVAL_THRESHOLD`).
 
-**Default models** (local/development tier):
+**Default models** (local/development tier), defined in `config.DEFAULT_MODELS`:
 - Anthropic: `claude-sonnet-4-6`
 - Google: `gemini-3-flash-preview`
 - OpenAI: `gpt-5.4-mini`
+
+The set of models selectable in the sidebar lives in `config.AVAILABLE_MODELS` (one list per provider) — the sidebar imports this dict directly, so config is the single source of truth for both the default and the selectable options.
 
 **Deployment note**: Streamlit Cloud uses per-provider model secrets (e.g. `ANTHROPIC_MODEL=claude-haiku-4-5-20251001`) set in the secrets dashboard for cost control. The sidebar model selector defaults to whatever the config resolves for the active provider.
 
@@ -168,8 +188,12 @@ agt_sea/
 │       ├── models/
 │       │   └── state.py             # Pydantic data models & enums
 │       ├── prompts/
-│       │   ├── loader.py            # load_philosophy_prompt() — reads prompt text from disk
-│       │   └── philosophies/        # One .txt file per CreativePhilosophy enum value
+│       │   ├── loader.py            # load_prompt() + load_creative_philosophy / load_strategic_philosophy / load_template / load_guidance
+│       │   ├── templates/           # Reusable structural scaffolds (e.g. creative_brief.txt)
+│       │   ├── guidance/            # Technique-specific guidance injected into agent prompts
+│       │   └── philosophies/
+│       │       ├── creative/        # One .txt file per CreativePhilosophy enum value
+│       │       └── strategic/       # One .txt file per StrategicPhilosophy enum value
 ├── tests/
 │   ├── _helpers.py                  # Shared test utilities (load_brief, print_entry_fields)
 │   ├── test_strategist.py           # Strategist isolation test
@@ -221,8 +245,9 @@ agt_sea/
 ## File Conventions
 
 - API keys: `.env` in project root (gitignored)
-- Creative philosophy prompts: plain text files in `prompts/philosophies/`, loaded by `prompts/loader.py` (future: RAG-enhanced)
-- Agent system prompts: inline in agent files (future: move to `prompts/` directory)
+- Philosophy prompts: plain text files in `prompts/philosophies/creative/` and `prompts/philosophies/strategic/`, loaded by the convenience wrappers in `prompts/loader.py` (future: RAG-enhanced)
+- Prompt templates & guidance: plain text files in `prompts/templates/` and `prompts/guidance/`, loaded by `load_template()` / `load_guidance()` and composed inside agent `_build_system_prompt()` helpers
+- Agent system prompts: assembled inline in agent files via `_build_system_prompt()` helpers that compose templates, guidance, and philosophy text
 - Sample briefs: `briefs/` directory
 - Architecture docs: `docs/architecture.md` (Mermaid)
 - Decision records: `docs/adr/` (numbered markdown files + README index)
@@ -256,13 +281,13 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 ## Build Sequence
 
 1. **MVP — Creative Pipeline** ← COMPLETE (deployed to Streamlit Cloud)
-2. Brand Strategy Module (branding / brand positioning)
-3. Standalone Strategic Agents (e.g. creative brief writer)
-4. Standalone Creative Agents (discipline-specific specialists, different creative types)
-5. Human-in-the-loop approval points
-6. Structured logging & tracing (LangSmith)
-7. Error handling & graceful degradation (retries, fallbacks)
-8. RAG-enhanced creative philosophies
+2. **Standalone Strategic Agents (e.g. creative brief writer**)** ← COMPLETE (standalone, calls `run_strategist()` directly)
+3. **Standalone Creative Agents (discipline-specific specialists, different creative types)** ← COMPLETE (standalone, calls `run_creative()` directly)
+4. Error handling & graceful degradation (retries, fallbacks)
+5. RAG-enhanced creative philosophies
+6. Human-in-the-loop approval points
+7. Structured logging & tracing (LangSmith)
+8. Brand Strategy Module (branding / brand positioning)
 9. Provider comparison tooling
 
 ---
@@ -274,15 +299,10 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 ### Roadmap
 
 **Phase 6 — Refinement (current)**
-- [x] Multipage restructure (st.navigation, shared components, theme extraction)
-- [x] Standalone Strategy page
-- [x] Standalone Creative page
-- [x] Per-provider model configuration
-- [x] Sidebar global parameters (provider, model, philosophy, iterations, threshold)
+- [ ] Frontend refinement and UX polish
+- [ ] Error handling and graceful degradation
 - [ ] Human-in-the-loop approval points (LangGraph interrupt/resume)
 - [ ] Structured logging and tracing (LangSmith)
-- [ ] Error handling and graceful degradation
-- [ ] Frontend refinement and UX polish
 
 **Future Modules**
 - [ ] Tools - a suite of creative tools (page visible with holding message)

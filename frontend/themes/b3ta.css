@@ -56,7 +56,7 @@ section[data-testid="stSidebar"] .stMarkdown p {
     font-size: 14px !important;
     font-weight: 300 !important;
     color: var(--dark) !important;
-    line-height: 1.65 !important;
+    line-height: 1.55 !important;
 }
 
 section[data-testid="stSidebar"] .stMarkdown strong {
@@ -79,7 +79,6 @@ section[data-testid="stSidebar"] .stNumberInput label {
     font-size: 11px !important;
     font-weight: 700 !important;
     color: var(--dark) !important;
-    text-transform: uppercase;
     letter-spacing: 1.5px;
 }
 
@@ -116,7 +115,7 @@ section[data-testid="stSidebar"] hr {
     font-family: var(--heading-font) !important;
     font-style: normal !important;
     font-weight: 400 !important;
-    font-size: 48px !important;
+    font-size: 40px !important;
     color: var(--dark) !important;
     letter-spacing: -1px;
 }
@@ -126,7 +125,7 @@ section[data-testid="stSidebar"] hr {
     font-family: var(--heading-font) !important;
     font-style: italic !important;
     font-weight: 400 !important;
-    font-size: 22px !important;
+    font-size: 20px !important;
     color: var(--dark) !important;
     letter-spacing: -0.3px;
 }
@@ -138,7 +137,7 @@ section[data-testid="stSidebar"] hr {
     font-size: 14px !important;
     font-weight: 300 !important;
     color: var(--dark) !important;
-    line-height: 1.7 !important;
+    line-height: 1.6 !important;
 }
 
 .stApp .stMarkdown strong {

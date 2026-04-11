@@ -23,20 +23,24 @@ from agt_sea.models.state import (
     WorkflowStatus,
 )
 from agt_sea.config import get_llm_provider, get_model_name
-from agt_sea.prompts.loader import load_philosophy_prompt
+from agt_sea.prompts.loader import load_creative_philosophy
 
 
 def _build_system_prompt(philosophy: CreativePhilosophy) -> str:
-    """Build the CD system prompt with the selected creative philosophy."""
-    philosophy_text = load_philosophy_prompt(philosophy)
+    """Build the CD system prompt with the selected creative philosophy.
+
+    When philosophy is NEUTRAL, no philosophy section is injected — the
+    prompt reads as if the feature wasn't there at all.
+    """
+    philosophy_section = ""
+    if philosophy != CreativePhilosophy.NEUTRAL:
+        philosophy_text = load_creative_philosophy(philosophy)
+        philosophy_section = f"\nYour creative philosophy:\n{philosophy_text}\n"
 
     return f"""You are an experienced Creative Director at a world-class creative agency.
-
-Your creative philosophy:
-{philosophy_text}
-
-Your role is to evaluate creative work against the creative brief. You are 
-tough but constructive — your job is to push the work to be the best it can 
+{philosophy_section}
+Your role is to evaluate creative work against the creative brief. You are
+tough but constructive — your job is to push the work to be the best it can
 be, not to tear it down.
 
 When evaluating, consider:
@@ -73,7 +77,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
     model = state.llm_model or get_model_name(provider)
     llm = get_llm(provider=provider, model=model)
 
-    system_prompt = _build_system_prompt(state.creative_philosophy)
+    system_prompt = _build_system_prompt(state.cd_philosophy)
 
     # Use structured output to get a validated CDEvaluation
     structured_llm = llm.with_structured_output(CDEvaluation)

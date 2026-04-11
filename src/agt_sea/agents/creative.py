@@ -16,40 +16,65 @@ from agt_sea.models.state import (
     AgencyState,
     AgentOutput,
     AgentRole,
+    CreativePhilosophy,
     WorkflowStatus,
 )
 from agt_sea.config import get_llm_provider, get_model_name
+from agt_sea.prompts.loader import load_creative_philosophy
 
-CREATIVE_SYSTEM_PROMPT = """You are a senior creative at a world-class creative agency.
 
-Your role is to take a creative brief and generate three distinct creative 
-approaches for the campaign. Each approach should be a genuinely different 
+def _build_system_prompt(philosophy: CreativePhilosophy) -> str:
+    """Build the Creative system prompt with the selected philosophy.
+
+    When philosophy is NEUTRAL, no philosophy section is injected — the
+    prompt reads as if the feature wasn't there at all.
+    """
+    philosophy_section = ""
+    if philosophy != CreativePhilosophy.NEUTRAL:
+        philosophy_text = load_creative_philosophy(philosophy)
+        philosophy_section = f"\nYour creative philosophy:\n{philosophy_text}\n"
+
+    return f"""You are a senior creative at a world-class creative agency.
+{philosophy_section}
+Your role is to take a creative brief and generate three distinct creative
+approaches for the campaign. Each approach should be a genuinely different
 strategic and creative direction — not just variations in tone.
 
 For each approach, provide:
 
 1. **Title**: A short, punchy working title for the concept.
 
-2. **Core Idea**: The central creative thought in 1-2 sentences. This is the 
+2. **Core Idea**: The central creative thought in 1-2 sentences. This is the
    big idea that everything else ladders up to.
 
-3. **Execution**: How this idea comes to life across the channels specified in 
-   the brief. If no channels specified, pick an appropriate channel / mix of channels 
-   to bring the idea to life effectively. Be specific — describe actual content, formats, and 
+3. **Execution**: How this idea comes to life across the channels specified in
+   the brief. If no channels specified, pick an appropriate channel / mix of channels
+   to bring the idea to life effectively. Be specific — describe actual content, formats, and
    moments, not vague platitudes.
 
-4. **Why It Works**: A brief rationale connecting the idea back to the insight 
+4. **Why It Works**: A brief rationale connecting the idea back to the insight
    and proposition in the creative brief.
 
-Push for originality. The first idea that comes to mind is usually the most 
-obvious — go past it. At least one of your three approaches should feel 
-uncomfortable or unexpected. Great creative work lives at the edge of what 
+Push for originality. The first idea that comes to mind is usually the most
+obvious — go past it. At least one of your three approaches should feel
+uncomfortable or unexpected. Great creative work lives at the edge of what
 the client expects."""
 
-REVISION_PROMPT = """You are a senior creative at a world-class creative agency.
 
-You previously submitted creative work that received feedback from the 
-Creative Director. Use this feedback to develop three improved creative 
+def _build_revision_prompt(philosophy: CreativePhilosophy) -> str:
+    """Build the Creative revision prompt with the selected philosophy.
+
+    When philosophy is NEUTRAL, no philosophy section is injected.
+    """
+    philosophy_section = ""
+    if philosophy != CreativePhilosophy.NEUTRAL:
+        philosophy_text = load_creative_philosophy(philosophy)
+        philosophy_section = f"\nYour creative philosophy:\n{philosophy_text}\n"
+
+    return f"""You are a senior creative at a world-class creative agency.
+{philosophy_section}
+You previously submitted creative work that received feedback from the
+Creative Director. Use this feedback to develop three improved creative
 approaches.
 
 You should:
@@ -63,7 +88,7 @@ For each approach, provide:
 1. **Title**: A short, punchy working title for the concept.
 2. **Core Idea**: The central creative thought in 1-2 sentences.
 3. **Execution**: How this idea comes to life across channels. Be specific.
-4. **Why It Works**: Rationale connecting back to the brief and addressing 
+4. **Why It Works**: Rationale connecting back to the brief and addressing
    the feedback."""
 
 
@@ -89,7 +114,7 @@ def run_creative(state: AgencyState) -> AgencyState:
     is_revision = state.cd_evaluation is not None
 
     if is_revision:
-        system_prompt = REVISION_PROMPT
+        system_prompt = _build_revision_prompt(state.creative_philosophy)
         human_content = (
             f"Here is the creative brief:\n\n{state.creative_brief}\n\n"
             f"Here was your previous creative work:\n\n{state.creative_concept}\n\n"
@@ -101,7 +126,7 @@ def run_creative(state: AgencyState) -> AgencyState:
             "Please produce three improved creative approaches."
         )
     else:
-        system_prompt = CREATIVE_SYSTEM_PROMPT
+        system_prompt = _build_system_prompt(state.creative_philosophy)
         human_content = (
             f"Here is the creative brief:\n\n{state.creative_brief}\n\n"
             "Please produce three distinct creative approaches."

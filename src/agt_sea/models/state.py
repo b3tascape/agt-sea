@@ -1,5 +1,5 @@
 """
-agt_sea v001 — Data Models
+agt_sea — Data Models
 
 Defines the shared state that flows through the LangGraph agent graph,
 plus supporting models for structured evaluation and iteration history.
@@ -43,14 +43,30 @@ class LLMProvider(str, Enum):
 class CreativePhilosophy(str, Enum):
     """
     Pre-defined creative philosophies that shape the Creative Director's
-    evaluation lens. Each value acts as a key that maps to a detailed
+    evaluation lens. Each value (except NEUTRAL) maps to a detailed
     system prompt defining the CD's creative perspective and standards.
+    NEUTRAL bypasses philosophy injection entirely.
     """
+    NEUTRAL = "neutral"
     BOLD_AND_DISRUPTIVE = "bold_and_disruptive"
     MINIMAL_AND_REFINED = "minimal_and_refined"
     EMOTIONALLY_DRIVEN = "emotionally_driven"
     DATA_LED = "data_led"
     CULTURALLY_PROVOCATIVE = "culturally_provocative"
+
+
+class StrategicPhilosophy(str, Enum):
+    """
+    Pre-defined strategic philosophies that shape the Strategist's
+    approach and lens. Each value (except NEUTRAL) maps to a detailed
+    prompt file defining the strategic perspective.
+    """
+    NEUTRAL = "neutral"
+    CHALLENGER = "challenger"
+    HUMAN_FIRST = "human_first"
+    CULTURAL_STRATEGY = "cultural_strategy"
+    BRAND_WORLD = "brand_world"
+    COMMERCIAL_PRAGMATIST = "commercial_pragmatist"
 
 
 # ---------------------------------------------------------------------------
@@ -120,9 +136,17 @@ class AgencyState(BaseModel):
         default="",
         description="The raw client brief as supplied.",
     )
+    strategic_philosophy: StrategicPhilosophy = Field(
+        default=StrategicPhilosophy.NEUTRAL,
+        description="The strategic lens the Strategist uses when writing the brief.",
+    )
     creative_philosophy: CreativePhilosophy = Field(
-        default=CreativePhilosophy.BOLD_AND_DISRUPTIVE,
-        description="The creative lens the CD uses to evaluate and direct work.",
+        default=CreativePhilosophy.NEUTRAL,
+        description="The creative lens the Creative agent uses when generating ideas.",
+    )
+    cd_philosophy: CreativePhilosophy = Field(
+        default=CreativePhilosophy.NEUTRAL,
+        description="The creative lens the Creative Director uses to evaluate and direct work.",
     )
 
     # --- LLM overrides (optional — fall back to config defaults when None) ---

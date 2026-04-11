@@ -30,6 +30,7 @@ st.markdown(
 brief_text = st.text_area(
     "CREATIVE BRIEF",
     height=200,
+    value=st.session_state.get("creative_brief_input", ""),
     placeholder=(
         "Paste a creative brief — challenge, audience, insight, "
         "proposition, and tone..."
@@ -47,17 +48,30 @@ run_button = st.button(
 # ---------------------------------------------------------------------------
 
 if run_button and brief_text:
+    st.session_state.creative_brief_input = brief_text
     with st.spinner("creative is generating concepts..."):
         state = AgencyState(
             creative_brief=brief_text,
+            strategic_philosophy=st.session_state.strategic_philosophy,
             creative_philosophy=st.session_state.creative_philosophy,
+            cd_philosophy=st.session_state.cd_philosophy,
             llm_provider=st.session_state.llm_provider,
             llm_model=st.session_state.llm_model,
         )
         result = run_creative(state)
+    st.session_state.creative_result = result
 
+# ---------------------------------------------------------------------------
+# Render persisted result (survives page switches)
+# ---------------------------------------------------------------------------
+
+if "creative_result" in st.session_state:
+    result = st.session_state.creative_result
     st.markdown("---")
     st.markdown("### creative concepts")
     render_agent_output(result.history[-1])
+
+    if st.toggle("show raw (copyable)", key="creative_copy_toggle"):
+        st.code(result.history[-1].content, language="markdown")
 
     render_footer()
