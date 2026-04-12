@@ -42,7 +42,7 @@ src/agt_sea/
         ├── creative/        # One .txt file per CreativePhilosophy enum value
         └── strategic/       # One .txt file per StrategicPhilosophy enum value
 frontend/
-├── app.py                   # Navigation shell (sys.path hack, page config, theme, sidebar, routing)
+├── app.py                   # Navigation shell (sys.path hack, page config, theme, session state defaults, sidebar, routing)
 ├── pages/                   # One file per module (strategy, creative, workflow, tools + placeholders)
 ├── components/
 │   ├── sidebar.py           # Logo, global params, footer
@@ -58,6 +58,7 @@ tests/
 ├── test_strategist.py       # Strategist isolation test
 ├── test_creative.py         # Strategist → Creative test
 └── test_pipeline.py         # Full pipeline integration test
+.streamlit/config.toml       # Streamlit config — pins base theme to light
 briefs/                      # Sample client briefs
 docs/
 ├── architecture.md          # Mermaid workflow diagram
@@ -101,7 +102,7 @@ docs/
 - Run tests after making changes to agents or graph logic
 - Run `ruff check .` before committing
 - Commit messages: imperative mood, conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
-- ADRs are append-only — new decisions get new numbered files, never edit old ones. The one exception is updating the `Status:` line of an older ADR to flag that it has been superseded (see ADR 0006 → 0007).
+- ADRs are append-only — new decisions get new numbered files, never edit old ones. The one exception is updating the `Status:` line of an older ADR to flag that it has been superseded or refined (see ADR 0006 → 0007, ADR 0003 → 0011).
 - When adding a new agent, follow the pattern in `agents/strategist.py`
 - Explain your reasoning before making changes — what you're doing, why, and what alternatives you considered
 - When introducing a new pattern or concept, explain it as if teaching a mid-level developer
@@ -113,6 +114,8 @@ docs/
 - Page files loaded via `st.Page()` run in the same process, so `sys.path` is already set when they execute
 - API keys and config overrides go in Streamlit Cloud secrets dashboard, not .env
 - Per-provider model secrets (`ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL`) override defaults on Cloud for cost control
+- `.streamlit/config.toml` pins `base = "light"` so the app never falls through to Streamlit's dark theme regardless of user OS preference. All visual styling comes from `b3ta.css`.
+- `app.py` initialises session state defaults (philosophies, provider, model, thresholds) via `setdefault` before the sidebar renders, so pages never hit a missing key even if the sidebar fails on first load
 
 ## Current Phase & Roadmap
 

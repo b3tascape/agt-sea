@@ -1,6 +1,6 @@
 # ADR 0003: Pydantic for State and Data Modelling
 
-**Status:** Accepted  
+**Status:** Accepted (boundary handling refined by ADR 0011)
 **Date:** 2026-02-15
 
 ## Context

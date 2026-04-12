@@ -200,7 +200,7 @@ agt_sea/
 │   ├── test_creative.py             # Strategist -> Creative test
 │   └── test_pipeline.py             # Full pipeline integration test
 ├── frontend/
-│   ├── app.py                       # Navigation shell (entry point)
+│   ├── app.py                       # Navigation shell (entry point, session state defaults)
 │   ├── pages/
 │   │   ├── strategy.py              # Standalone strategist
 │   │   ├── creative.py              # Standalone creative
@@ -219,6 +219,8 @@ agt_sea/
 │   │   └── labels.py                # Shared enum → display-label mappings
 │   └── themes/
 │       └── b3ta.css                 # Theme CSS
+├── .streamlit/
+│   └── config.toml                  # Streamlit config (pins light theme)
 ├── briefs/
 │   └── sample_brief_001.txt         # Sample client brief
 ├── pyproject.toml
@@ -272,11 +274,15 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 
 - **ADR 0001** — LangGraph for orchestration
 - **ADR 0002** — LangChain for LLM provider switching
-- **ADR 0003** — Pydantic for state and data modelling
+- **ADR 0003** — Pydantic for state and data modelling *(boundary handling refined by ADR 0011)*
 - **ADR 0004** — Structured output for CD evaluation
 - **ADR 0005** — Streamlit for frontend
 - **ADR 0006** — Iterative creative loop with bounded execution *(thresholds superseded by ADR 0007)*
 - **ADR 0007** — Revised creative loop thresholds (80 / 3)
+- **ADR 0008** — Multipage frontend architecture
+- **ADR 0009** — LLM provider and model override mechanism
+- **ADR 0010** — Filesystem-backed prompt injection pattern
+- **ADR 0011** — Rehydrate LangGraph output to Pydantic at the boundary
 
 ## Build Sequence
 
