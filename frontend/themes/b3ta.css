@@ -120,6 +120,16 @@ section[data-testid="stSidebar"] hr {
     letter-spacing: -1px;
 }
 
+/* --- H2 — Cormorant Garamond, used for section headings in brief/concept output --- */
+.stApp h2 {
+    font-family: var(--heading-font) !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    font-size: 28px !important;
+    color: var(--dark) !important;
+    letter-spacing: -0.5px;
+}
+
 /* --- Subheaders (h3) — Cormorant Garamond italic, lowercase --- */
 .stApp h3 {
     font-family: var(--heading-font) !important;
@@ -153,6 +163,33 @@ section[data-testid="stSidebar"] hr {
     background-color: rgba(0, 0, 0, 0.06) !important;
     padding: 2px 6px !important;
     border-radius: 0px !important;
+}
+
+/* --- Spinner text — mono font, dark colour, theme-independent --- */
+[data-testid="stSpinner"],
+[data-testid="stSpinner"] *,
+div[role="status"],
+div[role="status"] * {
+    color: var(--dark) !important;
+    font-family: var(--mono-font) !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+}
+
+/* --- Toggle — label in body font, dark colour --- */
+[data-testid="stToggle"] label,
+[data-testid="stToggle"] label *,
+label[data-testid="stWidgetLabel"],
+label[data-testid="stWidgetLabel"] * {
+    color: var(--dark) !important;
+    font-family: var(--body-font) !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+}
+
+/* Toggle control — ensure the switch track and thumb are visible on chartreuse */
+[data-testid="stToggle"] [role="switch"] {
+    border: 1.5px solid var(--dark) !important;
 }
 
 /* --- Text area --- */

@@ -70,7 +70,7 @@ if "strategy_result" in st.session_state:
     st.markdown("### creative brief")
     render_agent_output(result.history[-1])
 
-    if st.toggle("show raw (copyable)", key="strategy_copy_toggle"):
+    if st.toggle("</> | show markdown", key="strategy_copy_toggle"):
         st.code(result.history[-1].content, language="markdown")
 
     render_footer()

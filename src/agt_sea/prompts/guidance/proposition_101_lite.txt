@@ -24,7 +24,7 @@
 ### *Devising a quality single-minded proposition*
 - A good proposition comes from a synthesis of inputs, a rigorous distillation of the problem to its most simplistic form, which when combined with cultural context and human intuition produces the proposition, a single persuasive idea that connects a real cultural insight/tension to a distinctive point of difference that a brand can truly own. In the advertising context, this then helps give the creatives and media team one clear job to do.
 
-- ***Core inputs to be sythethised*** | *Core inputs typically consist of a selection of the following, these are often specified in the client brief, some elements may be implied or prior knowledge may be assumed. It is important to have this information in order to write an effective proposition*;
+- ***Core inputs to be synthesised*** | *Core inputs typically consist of a selection of the following, these are often specified in the client brief, some elements may be implied or prior knowledge may be assumed. It is important to have this information in order to write an effective proposition*;
     - **Business context** - what is the background that has led to this brief? what is the business / marketing objective?
     - **Challenge** - What is the core problem this brief needs to solve / what is the challenge to overcome? What do we hope to achieve? What is the wider business ambition?
     - **Company** - information about the company brand we are working for / with
@@ -33,7 +33,7 @@
     - **Audience** - who is the audience? what demographic (age, gender, employment etc.)? what is their mindset? their motivations? are there any tensions relevant to this brief?
     - **Cultural context** - cultural context can include a range of relevant considerations from the political and socio-economic right through to the technological, arts, music, sport and popular culture
 
-- ***Secondary inputs to be sythethised*** | *Secondary inputs typically consist of a selection of the following, again, some of these can be specified in the client brief, other elements can be supplied separately. Some elements may be implied or prior knowledge may be assumed*;
+- ***Secondary inputs to be synthesised*** | *Secondary inputs typically consist of a selection of the following, again, some of these can be specified in the client brief, other elements can be supplied separately. Some elements may be implied or prior knowledge may be assumed*;
     - **Geography** - where in the world will the work created from this brief appear (if applicable)
     - **Deliverables** - Required deliverables & formats (if applicable)
     - **Brand guidelines** - Brand guidelines to follow (if applicable)
