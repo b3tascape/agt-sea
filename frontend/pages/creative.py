@@ -20,9 +20,9 @@ from components.footer import render_footer
 # Page content
 # ---------------------------------------------------------------------------
 
-st.title("{ creative }")
+st.title("_creative")
 st.markdown(
-    "Submit a creative brief and the **creative** will generate three "
+    "Submit a creative brief and our **creative** agent will generate three "
     "distinct campaign concepts — each with a title, core idea, "
     "execution, and rationale."
 )
@@ -71,7 +71,7 @@ if "creative_result" in st.session_state:
     st.markdown("### creative concepts")
     render_agent_output(result.history[-1])
 
-    if st.toggle("</> | show markdown", key="creative_copy_toggle"):
+    if st.toggle("</> & copy", key="creative_copy_toggle"):
         st.code(result.history[-1].content, language="markdown")
 
     render_footer()

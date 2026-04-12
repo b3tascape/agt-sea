@@ -2,7 +2,11 @@
 
 import streamlit as st
 
-# Apply accent theme override
+st.title("_tools")
+
+st.markdown("Tools for creative exploration.")
+
+# Accent theme override — applied after title so it doesn't affect layout position
 st.markdown("""
 <style>
     .stApp { background-color: var(--accent-aquagreen) !important; }
@@ -10,5 +14,4 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("{ tools }")
 st.info("This module is in development.")

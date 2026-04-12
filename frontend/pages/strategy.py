@@ -20,9 +20,9 @@ from components.footer import render_footer
 # Page content
 # ---------------------------------------------------------------------------
 
-st.title("{ strategy }")
+st.title("_strategy")
 st.markdown(
-    "Submit a client brief and the **strategist** will transform it "
+    "Submit a client brief and our **strategist** agent will transform it "
     "into a structured creative brief."
 )
 
@@ -70,7 +70,7 @@ if "strategy_result" in st.session_state:
     st.markdown("### creative brief")
     render_agent_output(result.history[-1])
 
-    if st.toggle("</> | show markdown", key="strategy_copy_toggle"):
+    if st.toggle("</> & copy", key="strategy_copy_toggle"):
         st.code(result.history[-1].content, language="markdown")
 
     render_footer()

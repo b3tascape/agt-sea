@@ -357,51 +357,6 @@ details[open] {
     color: var(--mid-grey) !important;
 }
 
-/* --- Force dark text inside status and expander containers --- */
-[data-testid="stStatusWidget"] h1,
-[data-testid="stStatusWidget"] h2,
-[data-testid="stStatusWidget"] h3,
-[data-testid="stStatusWidget"] h4,
-[data-testid="stStatusWidget"] h5,
-[data-testid="stStatusWidget"] h6,
-[data-testid="stStatusWidget"] p,
-[data-testid="stStatusWidget"] strong,
-[data-testid="stStatusWidget"] b,
-[data-testid="stStatusWidget"] span,
-[data-testid="stStatusWidget"] li,
-[data-testid="stStatusWidget"] .stMarkdown,
-[data-testid="stStatusWidget"] .stMarkdown p,
-[data-testid="stStatusWidget"] .stMarkdown strong {
-    color: var(--dark) !important;
-}
-
-details h1, details h2, details h3,
-details h4, details h5, details h6,
-details p, details strong, details b,
-details span, details li,
-details .stMarkdown,
-details .stMarkdown p,
-details .stMarkdown strong {
-    color: var(--dark) !important;
-}
-
-.streamlit-expanderContent h1,
-.streamlit-expanderContent h2,
-.streamlit-expanderContent h3,
-.streamlit-expanderContent h4,
-.streamlit-expanderContent h5,
-.streamlit-expanderContent h6,
-.streamlit-expanderContent p,
-.streamlit-expanderContent strong,
-.streamlit-expanderContent b,
-.streamlit-expanderContent span,
-.streamlit-expanderContent li,
-.streamlit-expanderContent .stMarkdown,
-.streamlit-expanderContent .stMarkdown p,
-.streamlit-expanderContent .stMarkdown strong {
-    color: var(--dark) !important;
-}
-
 /* --- Footer badge --- */
 .footer-badge {
     font-family: var(--body-font);

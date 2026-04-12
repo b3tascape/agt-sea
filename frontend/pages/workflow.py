@@ -24,11 +24,16 @@ from components.run_metadata import render_run_metadata
 # Tab scaffold — add new workflow tabs here
 # ---------------------------------------------------------------------------
 
+st.title("_workflow")
+
 (tab_campaign,) = st.tabs(["Creative Campaign"])
 
 with tab_campaign:
-    st.title("{ workflow }")
-    st.markdown("### submit your brief")
+    st.markdown(
+        "Submit a client brief and our **strategist**, **creative** and "
+        "**creative director** agents will collaborate to deliver a "
+        "creative campaign concept."
+    )
 
     brief_text = st.text_area(
         "CLIENT BRIEF",
