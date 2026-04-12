@@ -39,18 +39,18 @@ def _finalise_max_iterations(state: AgencyState) -> AgencyState:
     best-scoring creative concept from history."""
     best_score = -1.0
     best_concept = state.creative_concept  # fallback to latest
+    best_iteration = -1
+    creative_by_iteration: dict[int, str] = {}
 
     for entry in state.history:
+        if entry.agent == AgentRole.CREATIVE:
+            creative_by_iteration[entry.iteration] = entry.content
         if entry.evaluation and entry.evaluation.score > best_score:
             best_score = entry.evaluation.score
-            # Find the creative output from the same iteration
-            for creative_entry in state.history:
-                if (
-                    creative_entry.agent == AgentRole.CREATIVE
-                    and creative_entry.iteration == entry.iteration
-                ):
-                    best_concept = creative_entry.content
-                    break
+            best_iteration = entry.iteration
+
+    if best_iteration in creative_by_iteration:
+        best_concept = creative_by_iteration[best_iteration]
 
     state.creative_concept = best_concept
     state.status = WorkflowStatus.MAX_ITERATIONS_REACHED
