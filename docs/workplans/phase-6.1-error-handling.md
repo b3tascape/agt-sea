@@ -72,13 +72,17 @@ Smallest possible data model change. Foundation for every later step.
 
 ---
 
-### Step 3 — Transport-level retries in `get_llm()`
+### Step 3 — Transport-level retries in `get_llm()` ✅
 
 Wrap the chat model returned from `get_llm()` with `.with_retry()`. Every agent gets resilience for free.
 
-**Files:**
-- `src/agt_sea/llm/provider.py`
-- `src/agt_sea/config.py` (new config knob)
+**Status:** Completed in commit `6b269eb`. The rest of this section documents what was built so later steps can reference it.
+
+**Files touched:**
+- `src/agt_sea/llm/provider.py` — `wrap_with_transport_retry()` helper, `_retryable_exceptions_for()` per-provider allowlist, `get_llm(with_retry: bool = True)` flag
+- `src/agt_sea/config.py` — `LLM_MAX_RETRIES` knob (default 3)
+- `src/agt_sea/agents/creative_director.py` — pre-rewired to `get_llm(with_retry=False)` + manual `wrap_with_transport_retry()` around the structured-output runnable (see "Consequence for the CD" below)
+- `tests/test_llm_provider.py` (new) — pytest unit tests for the retry wrapper. First pytest file in this codebase; run via `uv run pytest tests/test_llm_provider.py`. Sets the convention Step 4's and Step 5's unit tests follow.
 
 **Changes:**
 - Add `LLM_MAX_RETRIES` config setting with a sensible default (suggested: `3`). Read via the existing `_get_secret()` helper so it can be overridden via env or Streamlit secrets.
@@ -90,13 +94,23 @@ Wrap the chat model returned from `get_llm()` with `.with_retry()`. Every agent 
   Both lists must be visible in code (the allowlist passed to `retry_if_exception_type`, the denylist documented in a comment so future readers know it's deliberate exclusion, not oversight).
 - Document the retry policy in a docstring on `get_llm()`.
 
-**Note for Claude Code:** Before implementing, identify the specific exception classes for each provider and confirm them. LangChain wraps provider exceptions inconsistently — check what's actually raised on a real 429 from Anthropic vs Google vs OpenAI. If unclear, propose a conservative set and flag the uncertainty rather than guess.
+**Consequence for the CD (important context for Step 4):**
+`.with_retry()` returns a `RunnableRetry`, which is a `Runnable` but NOT a `BaseChatModel`. That means it has no `.with_structured_output()` method. So wrap order is forced: `structured_output → retry`, never `retry → structured_output`. Because of this, the Creative Director now fetches an unwrapped model and composes manually:
 
-**Acceptance:**
-- `get_llm()` returns a model wrapped in `.with_retry()`
-- Retry policy is explicit about which exceptions retry
-- Existing tests pass (retry wrapper is transparent to success paths)
-- `ruff check .` clean
+```python
+llm = get_llm(provider=provider, model=model, with_retry=False)
+structured_llm = wrap_with_transport_retry(
+    llm.with_structured_output(CDEvaluation), provider
+)
+evaluation = structured_llm.invoke(messages)
+```
+
+Step 4 must preserve this shape (see Step 4's "Critical context" below).
+
+**Per-provider exception allowlists (as implemented):**
+- **Anthropic:** `APIConnectionError`, `APITimeoutError`, `RateLimitError`, `InternalServerError` (the last covers 5xx including the 529 "overloaded" status).
+- **OpenAI:** same four — `APIConnectionError`, `APITimeoutError`, `RateLimitError`, `InternalServerError`.
+- **Google:** `ServerError` only. `google.genai.errors` does not expose a distinct `RateLimitError` — 429 is bundled into `ClientError` alongside 400/401/403/404, and we explicitly do NOT retry `ClientError`. Google 429s therefore won't retry. Deliberate tradeoff, documented inline in `provider.py`.
 
 **Commit message:** `feat: add transport-level retries to get_llm()`
 
@@ -104,25 +118,50 @@ Wrap the chat model returned from `get_llm()` with `.with_retry()`. Every agent 
 
 ### Step 4 — CD structured-output validation retry
 
-Wrap the CD's `with_structured_output` call in a one-shot reprompt-on-`ValidationError` helper.
+Wrap the CD's structured-output invocation in a one-shot reprompt-on-`ValidationError` helper.
 
 **Files:**
 - `src/agt_sea/agents/creative_director.py`
-- `tests/test_creative_director_retry.py` (new — small unit test)
+- `tests/test_creative_director_retry.py` (new — pytest unit test, follows the convention established by `tests/test_llm_provider.py` in Step 3)
+
+**Critical context — read this before writing code:**
+
+After Step 3, `run_creative_director()` already composes the structured-output runnable like this:
+
+```python
+llm = get_llm(provider=provider, model=model, with_retry=False)
+structured_llm = wrap_with_transport_retry(
+    llm.with_structured_output(CDEvaluation), provider
+)
+evaluation = structured_llm.invoke(messages)
+```
+
+Step 4 adds the validation-retry layer, and must preserve that transport-retry wrapping. **Do not remove `wrap_with_transport_retry` or switch the CD back to `get_llm()` default retries** — the structured-output path physically cannot use the default `get_llm()` wrap (the returned `RunnableRetry` has no `.with_structured_output()`; see Step 3's "Consequence for the CD"). If a future session is tempted to "simplify" the CD back to `llm = get_llm(...); llm.with_structured_output(...)`, the pipeline test will crash on the `.with_structured_output()` call.
+
+**Layering (outside → inside):**
+
+1. **Validation retry** (this step) — catches `pydantic.ValidationError` raised from the structured-output parser after the LLM responds. Reprompts once with the schema error included.
+2. **Transport retry** (Step 3) — catches transient network / 429 / 5xx errors during each LLM call. Already wraps the structured-output runnable.
+3. **The raw LLM call** — at the bottom of the stack.
+
+Validation retry is at the OUTSIDE of the stack because transport errors happen during the network call, whereas validation errors only surface after a successful network call when the parser tries to build a `CDEvaluation` from the model's response. Each call to `structured_llm.invoke(messages)` is a single "attempt" from the validation-retry helper's perspective — inside that attempt, transport retries may fire zero or more times. On `ValidationError`, the helper reprompts with error context and calls `structured_llm.invoke(reprompted_messages)` once more.
 
 **Changes:**
 - Add a helper (private to the module, e.g. `_invoke_with_validation_retry`) that:
-  1. Calls the structured-output model with the prompt
-  2. On `pydantic.ValidationError`, constructs a reprompt that includes the original prompt, a brief "your previous response failed schema validation" preamble, and the validation error message
-  3. Calls once more
-  4. If the second call also raises, lets the exception propagate (it'll be caught by the orchestration-layer wrapper in Step 5)
-- Use this helper in `run_creative_director()` instead of calling the structured-output model directly.
-- Add a unit test that mocks the LLM to raise `ValidationError` on first call and return a valid `CDEvaluation` on second. Assert the retry path works and the final state contains the valid evaluation.
+  1. Takes the already-composed `structured_llm` runnable (the one with transport retry wrapped around structured output) and the prompt messages.
+  2. Calls `structured_llm.invoke(messages)`.
+  3. On `pydantic.ValidationError`, constructs a reprompt that includes the original prompt, a brief "your previous response failed schema validation" preamble, and the validation error message.
+  4. Calls `structured_llm.invoke(reprompted_messages)` once more.
+  5. If the second call also raises, lets the exception propagate (it'll be caught by the orchestration-layer `_safe_node` wrapper in Step 5).
+- Route `run_creative_director()`'s `structured_llm.invoke(messages)` call through this helper. The surrounding composition (`get_llm(with_retry=False)` → `with_structured_output` → `wrap_with_transport_retry`) stays exactly as Step 3 left it.
+- Add a pytest unit test in `tests/test_creative_director_retry.py` that constructs a fake `structured_llm` which raises `ValidationError` on first `.invoke()` and returns a valid `CDEvaluation` on second. Assert the helper returns the valid evaluation and that `.invoke()` was called exactly twice. A second test should assert that two consecutive `ValidationError`s propagate to the caller.
+- Run via `uv run pytest tests/test_creative_director_retry.py` (not `python tests/test_creative_director_retry.py` — the pytest convention for unit tests is established in Step 3).
 
 **Acceptance:**
 - Validation failure on first attempt + success on second = clean run, no error surfaced
 - Validation failure on both attempts = exception propagates (will be handled in Step 5)
-- New unit test passes
+- New unit tests pass via `uv run pytest`
+- Full pipeline test still passes (happy path unchanged)
 - `ruff check .` clean
 
 **Commit message:** `feat: add validation retry to creative director structured output`
