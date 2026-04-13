@@ -141,3 +141,14 @@ def get_model_name(provider: LLMProvider | None = None) -> str:
 
 MAX_ITERATIONS: int = int(_get_secret("MAX_ITERATIONS") or "3")
 APPROVAL_THRESHOLD: float = float(_get_secret("APPROVAL_THRESHOLD") or "80.0")
+
+
+# ---------------------------------------------------------------------------
+# Transport-level retry policy
+# ---------------------------------------------------------------------------
+# Number of attempts (including the first) made by wrap_with_transport_retry()
+# in llm/provider.py when an LLM call raises a transient transport error.
+# The retry allowlist is per-provider and defined in provider.py; this knob
+# just bounds how many attempts are made before the error propagates.
+
+LLM_MAX_RETRIES: int = int(_get_secret("LLM_MAX_RETRIES") or "3")

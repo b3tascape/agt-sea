@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from agt_sea.llm.provider import get_llm
+from agt_sea.llm.provider import get_llm, wrap_with_transport_retry
 from agt_sea.models.state import (
     AgencyState,
     AgentOutput,
@@ -75,12 +75,19 @@ def run_creative_director(state: AgencyState) -> AgencyState:
     """
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
-    llm = get_llm(provider=provider, model=model)
+    # Transport retries can't wrap a BaseChatModel before .with_structured_output()
+    # is applied — .with_retry() returns a RunnableRetry that has no
+    # with_structured_output method. So we fetch the raw chat model, apply
+    # structured output, then wrap the composed runnable with transport retry.
+    llm = get_llm(provider=provider, model=model, with_retry=False)
 
     system_prompt = _build_system_prompt(state.cd_philosophy)
 
-    # Use structured output to get a validated CDEvaluation
-    structured_llm = llm.with_structured_output(CDEvaluation)
+    # Use structured output to get a validated CDEvaluation, then wrap the
+    # composed runnable with transport-level retries.
+    structured_llm = wrap_with_transport_retry(
+        llm.with_structured_output(CDEvaluation), provider
+    )
 
     messages = [
         SystemMessage(content=system_prompt),
