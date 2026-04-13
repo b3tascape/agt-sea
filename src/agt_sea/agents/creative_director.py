@@ -9,9 +9,13 @@ philosophy.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
+from typing import Any
 
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
+from pydantic import ValidationError
 
 from agt_sea.llm.provider import get_llm, wrap_with_transport_retry
 from agt_sea.models.state import (
@@ -24,6 +28,8 @@ from agt_sea.models.state import (
 )
 from agt_sea.config import get_llm_provider, get_model_name
 from agt_sea.prompts.loader import load_creative_philosophy
+
+logger = logging.getLogger(__name__)
 
 
 def _build_system_prompt(philosophy: CreativePhilosophy) -> str:
@@ -58,6 +64,57 @@ Score the work out of 100:
 - Below 40: Off-brief or uninspired. Start over.
 
 Be honest. A generous score helps nobody."""
+
+
+def _invoke_with_validation_retry(
+    structured_llm: Runnable[Any, CDEvaluation],
+    messages: list[BaseMessage],
+) -> CDEvaluation:
+    """Invoke a structured-output runnable and reprompt once on ValidationError.
+
+    Schema validation errors only surface *after* a successful network call,
+    when the structured-output parser rebuilds a CDEvaluation from the model
+    response. That makes them an application-layer concern, not a transport
+    one — transport retries (wrapped inside ``structured_llm`` at composition
+    time) fire during the network call and can't recover a malformed-but-
+    delivered response.
+
+    This helper adds a one-shot reprompt: on the first ``ValidationError`` it
+    appends a ``HumanMessage`` describing the failure and calls ``.invoke()``
+    once more. A second failure propagates to the caller so the orchestration-
+    layer safe-node wrapper can surface it as a FAILED run.
+
+    Args:
+        structured_llm: The already-composed structured-output runnable
+            (transport retry wrapped around ``.with_structured_output()``).
+        messages: The prompt messages to send on the first attempt.
+
+    Returns:
+        A validated CDEvaluation from whichever attempt succeeds.
+
+    Raises:
+        pydantic.ValidationError: If both attempts fail schema validation.
+    """
+    try:
+        return structured_llm.invoke(messages)
+    except ValidationError as exc:
+        logger.warning(
+            "CD structured output failed validation on first attempt, "
+            "retrying with reprompt: %s",
+            exc,
+        )
+        reprompt = messages + [
+            HumanMessage(
+                content=(
+                    "Your previous response failed schema validation:\n\n"
+                    f"{exc}\n\n"
+                    "Return a new response that conforms exactly to the "
+                    "CDEvaluation schema. Do not apologise or explain — "
+                    "return only the corrected structured output."
+                )
+            )
+        ]
+        return structured_llm.invoke(reprompt)
 
 
 def run_creative_director(state: AgencyState) -> AgencyState:
@@ -99,7 +156,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
         )),
     ]
 
-    evaluation = structured_llm.invoke(messages)
+    evaluation = _invoke_with_validation_retry(structured_llm, messages)
 
     # Update state
     state.cd_evaluation = evaluation

@@ -96,6 +96,7 @@ docs/
 - Creative agent checks `state.cd_evaluation is not None` to determine initial vs revision path
 - **Philosophy injection pattern** — Strategist, Creative, and Creative Director each build their system prompt via a module-level `_build_system_prompt(philosophy)` helper (Creative also has `_build_revision_prompt`). Each helper follows the *neutral-skip* rule: when the philosophy is `NEUTRAL`, `philosophy_section` stays empty and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded via the appropriate `load_creative_philosophy` / `load_strategic_philosophy` wrapper and injected into a dedicated section. Strategist and Creative read `state.strategic_philosophy` / `state.creative_philosophy` respectively; the Creative Director reads `state.cd_philosophy` (not `state.creative_philosophy`).
 - Strategist prompts are assembled from reusable pieces via `load_template()` (structural scaffold) and `load_guidance()` (technique-specific guidance) — don't hardcode the brief template or proposition guidance inline.
+- **Logging** — agents use stdlib `logging` for runtime diagnostics. Module-level convention: `logger = logging.getLogger(__name__)` at the top of the file, `logger.warning()` for recoverable anomalies (e.g. retry paths), `logger.error()` for failures. Introduced in Phase 6.1 alongside the CD validation-retry helper; Phase 6.4 will layer structured logging/tracing on top.
 
 ## Workflow Rules
 
