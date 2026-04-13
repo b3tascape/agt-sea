@@ -103,6 +103,7 @@ docs/
 - Run `ruff check .` before committing
 - Commit messages: imperative mood, conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
 - ADRs are append-only — new decisions get new numbered files, never edit old ones. The one exception is updating the `Status:` line of an older ADR to flag that it has been superseded or refined (see ADR 0006 → 0007, ADR 0003 → 0011).
+- Workplans live at `docs/workplans/` while work is in progress. When a workplan's work is complete and its corresponding ADR is committed, move it to `.archive/workplans/` with `git mv`. Specs follow the same pattern: live specs in `docs/specs/`, completed specs in `.archive/specs/`. The permanent record of decisions lives in `docs/adr/` — workplans and specs are transient scaffolding, ADRs are the durable artefact.
 - When adding a new agent, follow the pattern in `agents/strategist.py`
 - Explain your reasoning before making changes — what you're doing, why, and what alternatives you considered
 - When introducing a new pattern or concept, explain it as if teaching a mid-level developer
@@ -133,4 +134,6 @@ docs/
 7. Agnostic - Miscellaneous (placeholder page exists, not visible)
 
 ## Ignore these directories
-- `.archive/` — contains snapshots, backups, and completed one-off specs, not working code. Never read from or execute anything in this directory.
+- `.archive/` — contains snapshots, backups, completed one-off specs, and completed workplans, not working code. Never read from or execute anything in this directory. Specifically:
+  - `.archive/specs/` — completed feature specs (design documents that have been implemented)
+  - `.archive/workplans/` — completed execution plans (operational plans whose work is done and whose ADR is committed)
