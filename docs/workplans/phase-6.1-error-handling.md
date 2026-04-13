@@ -116,9 +116,24 @@ Step 4 must preserve this shape (see Step 4's "Critical context" below).
 
 ---
 
-### Step 4 — CD structured-output validation retry
+### Step 4 — CD structured-output validation retry ✅
 
 Wrap the CD's structured-output invocation in a one-shot reprompt-on-`ValidationError` helper.
+
+**Status:** Completed in commit `3203971`. The rest of this section documents what was built so Step 5 can reference it.
+
+**Files touched:**
+- `src/agt_sea/agents/creative_director.py` — new module-private `_invoke_with_validation_retry()` helper, module-level `logger = logging.getLogger(__name__)`, and `run_creative_director()` routed through the helper. The Step 3 transport-retry composition (`get_llm(with_retry=False)` → `.with_structured_output(CDEvaluation)` → `wrap_with_transport_retry`) is preserved byte-for-byte.
+- `tests/test_creative_director_retry.py` (new) — three pytest unit tests: (1) happy path: first-call success, exactly one invocation, prompt passed through unchanged; (2) success-on-retry: first-call `ValidationError` followed by valid `CDEvaluation`, with tight reprompt-shape assertions (message list length exactly `original + 1`, appended message is a `HumanMessage`, error text is interpolated into its content); (3) double-failure: two consecutive `ValidationError`s propagate to the caller. The reference pattern for new pytest unit tests is now both this file and `tests/test_llm_provider.py`.
+- `CLAUDE.md` — new "Logging" bullet under Agent Conventions introducing the stdlib `logging` convention project-wide: `logger = logging.getLogger(__name__)` at module level, `logger.warning()` for recoverable anomalies (e.g. the validation-retry path), `logger.error()` for failures. Phase 6.4 will layer structured logging/tracing on top. **Step 5's `_safe_node` can log via this same convention without a fresh decision.**
+
+**Helper contract (important for Step 5):**
+
+- **On first-attempt `ValidationError`:** helper logs a warning, reprompts with the error text appended as a new `HumanMessage`, calls `.invoke()` once more.
+- **On second-attempt `ValidationError`:** helper does NOT catch it — the exception propagates uncaught to the caller, by design.
+- **Catch point:** Step 5's `_safe_node` wrapper catches it via bare `except Exception`. `pydantic.ValidationError` inherits from `ValueError` → `Exception`, so no special-casing is needed in `_safe_node`.
+
+**Reprompt wording:** the reprompt message explicitly tells the model "Do not apologise or explain — return only the corrected structured output." This heads off a common LLM failure mode where the model, faced with "you made a mistake" feedback, smuggles a natural-language apology into the structured-output response and fails validation a second time. Worth preserving verbatim if the prompt is ever refactored.
 
 **Files:**
 - `src/agt_sea/agents/creative_director.py`
@@ -178,7 +193,7 @@ The biggest step. Wraps each agent node so escaped exceptions become clean `FAIL
 
 **Changes:**
 
-1. **Add `_finalise_failed` node.** Pure node, sets `state.status = WorkflowStatus.FAILED`, ensures `state.error` is populated (if not already, set a generic message). Returns the state.
+1. **Add `_finalise_failed` node.** Pure node, sets `state.status = WorkflowStatus.FAILED`, ensures `state.error` is populated — if not already set, default it to `"Unknown failure (no error detail captured)"`. Returns the state.
 
 2. **Add `_safe_node()` helper.** Higher-order function that takes an agent function and returns a wrapped version:
    ```python
@@ -193,13 +208,36 @@ The biggest step. Wraps each agent node so escaped exceptions become clean `FAIL
    ```
    Note the agent name in the error message — the user needs to know *which* agent failed, not just *that* something failed.
 
+   **Note:** this catches `pydantic.ValidationError` correctly. Step 4's `_invoke_with_validation_retry` re-raises `ValidationError` on the second attempt, and `pydantic.ValidationError` inherits from `ValueError` → `Exception`, so the bare `except Exception` here picks it up without special-casing. See the Step 4 "Helper contract" block above for the full chain.
+
 3. **Wrap each agent at graph-build time.** Where the graph currently does `graph.add_node("strategist", run_strategist)`, change to `graph.add_node("strategist", _safe_node(run_strategist))`. Same for creative and creative_director.
 
-4. **Add failure routing.** Each agent node now needs a conditional edge that checks "did this fail?" and routes to `_finalise_failed` if so, otherwise continues to the next node as before. Routing functions stay pure — they read `state.error is not None` and return a string. The mutation already happened in `_safe_node`.
+   **Edge shape note:** strategist and creative currently have **unconditional** `add_edge` calls to the next node. Step 5 rewires these to `add_conditional_edges` to accommodate the failure gate (see point 4). The CD's existing conditional edges (`check_approval`, then `check_max_iterations` via the pass-through node) are extended via the error-guard pattern in point 4, not reshaped — shape stays identical, the routing function bodies gain a two-line guard.
+
+4. **Add failure routing — locked pattern: error guard at the top of every routing function.** Each routing function (existing or new) begins with:
+   ```python
+   if state.error is not None:
+       return "failed"
+   ```
+   This applies **uniformly** to Strategist, Creative, and Creative Director routing. Do NOT widen `check_approval` into a three-way return that mixes failure with approval logic, and do NOT add a separate pre-check routing node for the CD — the guard at the top of each routing function is the canonical pattern.
+
+   **Why this over the alternatives:**
+   - **Uniformity:** every routing function in the codebase reads the same way, which matters when HITL and new modules add more routing later.
+   - **Routing purity preserved:** the guard reads state and returns a string — no mutation, no side effect. The mutation already happened in `_safe_node`.
+   - **Early short-circuit:** failure routing runs before any domain-specific logic that would otherwise try to read fields a failed agent never populated (e.g. `check_approval` reading `state.cd_evaluation.score` when the CD crashed before populating `cd_evaluation`). Without the guard at the top, `check_approval` would `AttributeError` on a failed CD run.
+   - **Single-responsibility naming preserved:** `check_approval` and `check_max_iterations` keep their original one-concept names and bodies, with only the two-line guard added on top.
+
+   Strategist and Creative each gain a new `check_failed` routing function (trivially `return "failed" if state.error else "ok"`) wired via `add_conditional_edges`. The CD's existing `check_approval` and `check_max_iterations` both gain the guard at the top; their conditional-edge maps extend by one key (`"failed": "_finalise_failed"`). Exact map shapes are left to the implementer after reading the current `workflow.py`.
 
 5. **Wire `_finalise_failed` → `END`.**
 
-6. **New integration test.** `tests/test_pipeline_failure.py` — mocks `run_strategist` (or one of the agents) to raise an exception, runs the graph, asserts the final rehydrated state has `status == FAILED` and a non-empty `error` field. Also asserts the run completes cleanly without an exception escaping `graph.invoke()`.
+6. **New integration test.** `tests/test_pipeline_failure.py` — patches one of the agent functions to raise an exception, runs the graph, asserts the final rehydrated state has `status == FAILED` and a non-empty `error` field. Also asserts the run completes cleanly without an exception escaping `graph.invoke()`.
+
+   **Patching strategy — important, read before writing the test.** LangGraph's `add_node(name, fn)` captures the function object at graph-build time. By then, `workflow.py` has already done `from agt_sea.agents.strategist import run_strategist`, so the graph holds a reference bound as an attribute on the `agt_sea.graph.workflow` module — not on `agt_sea.agents.strategist`. To force a failure:
+   1. Patch `agt_sea.graph.workflow.run_strategist` (or the equivalent symbol for whichever agent the test targets). **Do NOT patch `agt_sea.agents.strategist.run_strategist`** — that patches the wrong reference and the test will silently pass against the unpatched function.
+   2. Ensure the graph is built (or rebuilt) **after** the patch takes effect. If the current `workflow.py` builds the graph at import time, the test must either use `importlib.reload` or refactor graph construction into a callable function the test can invoke post-patch.
+
+   This is the most common failure mode for monkeypatch-based LangGraph tests. Name it explicitly in the test's module docstring so future readers don't relearn it.
 
 **Important constraints:**
 - Routing functions remain pure. No mutation.
