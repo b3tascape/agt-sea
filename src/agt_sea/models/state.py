@@ -24,6 +24,7 @@ class WorkflowStatus(str, Enum):
     REVIEW = "review"
     APPROVED = "approved"
     MAX_ITERATIONS_REACHED = "max_iterations_reached"
+    FAILED = "failed"
 
 
 class AgentRole(str, Enum):
@@ -203,4 +204,12 @@ class AgencyState(BaseModel):
     status: WorkflowStatus = Field(
         default=WorkflowStatus.PENDING,
         description="Current status of the workflow.",
+    )
+    error: str | None = Field(
+        default=None,
+        description=(
+            "Populated when a node fails. Contract between the graph and "
+            "the frontend for FAILED runs — the frontend reads this after "
+            "rehydration to render an error state instead of agent output."
+        ),
     )

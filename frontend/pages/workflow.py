@@ -107,6 +107,9 @@ with tab_campaign:
             st.warning(
                 "max iterations reached — showing best scoring idea."
             )
+        elif final_state.status == WorkflowStatus.FAILED:
+            # Step 6 replaces this with the proper error_state component.
+            st.error(final_state.error or "run failed.")
 
         st.markdown("### final creative concept")
         st.markdown(final_state.creative_concept or "")

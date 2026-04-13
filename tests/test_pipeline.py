@@ -101,6 +101,11 @@ def main():
         print("-" * 60)
         print("\n⚠️  Max iterations reached — outputting best scoring idea")
         print("-" * 60)
+    elif final_state.status == WorkflowStatus.FAILED:
+        print("")
+        print("-" * 60)
+        print(f"\n❌ Run FAILED — {final_state.error or 'no error message'}")
+        print("-" * 60)
 
     print(f"\nFinal Creative Concept:\n\n{final_state.creative_concept}")
     print("")
