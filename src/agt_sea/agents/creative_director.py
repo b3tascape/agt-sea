@@ -189,8 +189,13 @@ def check_approval(state: AgencyState) -> str:
     """Routing function: has the creative work met the approval threshold?
 
     Returns:
-        'approved' if score meets threshold, 'not_approved' otherwise.
+        'failed' if a prior node captured an error, 'approved' if score
+        meets threshold, 'not_approved' otherwise.
     """
+    # Error guard: short-circuit to the failure finaliser before reading
+    # cd_evaluation — a crashed CD may never have populated it.
+    if state.error is not None:
+        return "failed"
     if state.cd_evaluation and state.cd_evaluation.score >= state.approval_threshold:
         return "approved"
     return "not_approved"
@@ -200,8 +205,13 @@ def check_max_iterations(state: AgencyState) -> str:
     """Routing function: has the iteration limit been reached?
 
     Returns:
-        'max_reached' if at iteration limit, 'continue' otherwise.
+        'failed' if a prior node captured an error, 'max_reached' if at
+        iteration limit, 'continue' otherwise.
     """
+    # Error guard: short-circuit to the failure finaliser uniformly, so
+    # every routing function in the codebase reads the same way.
+    if state.error is not None:
+        return "failed"
     if state.iteration >= state.max_iterations:
         return "max_reached"
     return "continue"
