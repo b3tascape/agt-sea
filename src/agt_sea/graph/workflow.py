@@ -36,6 +36,25 @@ def _finalise_approved(state: AgencyState) -> AgencyState:
     return state
 
 
+def format_node_error(fn_name: str, exc: Exception) -> str:
+    """Format an agent-node exception into the canonical error string.
+
+    Single source of truth for a three-site contract:
+
+    1. ``_safe_node`` (this module) — writes this string to ``state.error``
+       when an agent wrapped inside the graph raises.
+    2. Standalone frontend pages (``frontend/pages/strategy.py``,
+       ``frontend/pages/creative.py``) — call agents directly, outside
+       the graph, and reconstruct the same string when an agent raises.
+    3. ``frontend/components/error_state.py`` — reads ``state.error`` and
+       renders it. If the format here changes, the rendered error
+       heading changes with it.
+
+    Keeping the shape stable across all three is why this helper exists.
+    """
+    return f"{fn_name} failed: {type(exc).__name__}: {exc}"
+
+
 def _finalise_failed(state: AgencyState) -> AgencyState:
     """Mark the workflow as failed and ensure an error message is present."""
     if state.error is None:
@@ -64,12 +83,7 @@ def _safe_node(
         try:
             return agent_fn(state)
         except Exception as exc:
-            # NOTE: state.error format is consumed by
-            # frontend/components/error_state.py (Phase 6.1 Step 6). Keep the
-            # "<agent_fn> failed: <ExcType>: <msg>" shape stable.
-            state.error = (
-                f"{agent_fn.__name__} failed: {type(exc).__name__}: {exc}"
-            )
+            state.error = format_node_error(agent_fn.__name__, exc)
             return state
 
     wrapped.__name__ = f"safe_{agent_fn.__name__}"

@@ -15,6 +15,7 @@ import streamlit as st
 from agt_sea.graph.workflow import build_graph
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
+from components.error_state import render_error_state
 from components.footer import render_footer
 from components.history import render_history
 from components.progress import render_node_progress
@@ -57,6 +58,9 @@ with tab_campaign:
 
     if run_button and brief_text:
         st.session_state.workflow_brief_input = brief_text
+        # Clear any cached final state so a mid-stream crash that fails
+        # to accumulate updates doesn't leave the prior run rendered.
+        st.session_state.pop("workflow_result", None)
         graph = build_graph()
 
         initial_state = AgencyState(
@@ -101,24 +105,27 @@ with tab_campaign:
 
         st.markdown("---")
 
-        if final_state.status == WorkflowStatus.APPROVED:
-            st.success("creative work approved.")
-        elif final_state.status == WorkflowStatus.MAX_ITERATIONS_REACHED:
-            st.warning(
-                "max iterations reached — showing best scoring idea."
-            )
-        elif final_state.status == WorkflowStatus.FAILED:
-            # Step 6 replaces this with the proper error_state component.
-            st.error(final_state.error or "run failed.")
+        if final_state.status == WorkflowStatus.FAILED:
+            render_error_state(final_state)
+            st.markdown("---")
+            render_run_metadata(final_state)
+            render_footer()
+        else:
+            if final_state.status == WorkflowStatus.APPROVED:
+                st.success("creative work approved.")
+            elif final_state.status == WorkflowStatus.MAX_ITERATIONS_REACHED:
+                st.warning(
+                    "max iterations reached — showing best scoring idea."
+                )
 
-        st.markdown("### final creative concept")
-        st.markdown(final_state.creative_concept or "")
+            st.markdown("### final creative concept")
+            st.markdown(final_state.creative_concept or "")
 
-        st.markdown("---")
-        st.markdown("### pipeline history")
-        render_history(final_state.history)
+            st.markdown("---")
+            st.markdown("### pipeline history")
+            render_history(final_state.history)
 
-        st.markdown("---")
-        render_run_metadata(final_state)
+            st.markdown("---")
+            render_run_metadata(final_state)
 
-        render_footer()
+            render_footer()
