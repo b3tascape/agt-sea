@@ -17,3 +17,4 @@ This directory contains the Architecture Decision Records (ADRs) for agt_sea. Ea
 | [0009](0009-llm-override-mechanism.md) | LLM Provider and Model Override Mechanism | Accepted (backfilled) |
 | [0010](0010-prompt-injection-pattern.md) | Filesystem-Backed Prompt Injection Pattern | Accepted |
 | [0011](0011-rehydrate-at-boundary.md) | Rehydrate LangGraph Output to Pydantic at the Boundary | Accepted |
+| [0012](0012-error-handling-and-graceful-degradation.md) | Error Handling and Graceful Degradation | Accepted |
