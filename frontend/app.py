@@ -60,6 +60,7 @@ _defaults: dict[str, object] = {
     "llm_model": get_model_name(),
     "max_iterations": 3,
     "approval_threshold": 80.0,
+    "run_count": 0,
 }
 for _key, _val in _defaults.items():
     st.session_state.setdefault(_key, _val)

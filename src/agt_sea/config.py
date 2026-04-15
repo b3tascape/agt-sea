@@ -141,6 +141,7 @@ def get_model_name(provider: LLMProvider | None = None) -> str:
 
 MAX_ITERATIONS: int = int(_get_secret("MAX_ITERATIONS") or "3")
 APPROVAL_THRESHOLD: float = float(_get_secret("APPROVAL_THRESHOLD") or "80.0")
+DEMO_RUN_CAP: int = int(_get_secret("DEMO_RUN_CAP") or "10")
 
 
 # ---------------------------------------------------------------------------
