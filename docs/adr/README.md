@@ -18,3 +18,4 @@ This directory contains the Architecture Decision Records (ADRs) for agt_sea. Ea
 | [0010](0010-prompt-injection-pattern.md) | Filesystem-Backed Prompt Injection Pattern | Accepted |
 | [0011](0011-rehydrate-at-boundary.md) | Rehydrate LangGraph Output to Pydantic at the Boundary | Accepted |
 | [0012](0012-error-handling-and-graceful-degradation.md) | Error Handling and Graceful Degradation | Accepted |
+| [0013](0013-demo-abuse-mitigation.md) | Demo Abuse Mitigation via Per-Session Run Counter | Accepted |
