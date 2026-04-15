@@ -17,6 +17,7 @@ from agt_sea.models.state import AgencyState, WorkflowStatus
 from components.agent_output import render_agent_output
 from components.error_state import render_error_state
 from components.footer import render_footer
+from components.run_guard import check_run_allowed, render_run_limit_reached
 
 # ---------------------------------------------------------------------------
 # Page content
@@ -49,6 +50,9 @@ run_button = st.button(
 # ---------------------------------------------------------------------------
 
 if run_button and brief_text:
+    if not check_run_allowed():
+        render_run_limit_reached()
+        st.stop()
     st.session_state.strategy_brief_input = brief_text
     # Clear stale result so a failed re-run doesn't show the prior output.
     st.session_state.pop("strategy_result", None)

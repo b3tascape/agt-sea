@@ -19,6 +19,7 @@ from components.error_state import render_error_state
 from components.footer import render_footer
 from components.history import render_history
 from components.progress import render_node_progress
+from components.run_guard import check_run_allowed, render_run_limit_reached
 from components.run_metadata import render_run_metadata
 
 # ---------------------------------------------------------------------------
@@ -57,6 +58,9 @@ with tab_campaign:
     # -------------------------------------------------------------------
 
     if run_button and brief_text:
+        if not check_run_allowed():
+            render_run_limit_reached()
+            st.stop()
         st.session_state.workflow_brief_input = brief_text
         # Clear any cached final state so a mid-stream crash that fails
         # to accumulate updates doesn't leave the prior run rendered.

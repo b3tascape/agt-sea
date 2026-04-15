@@ -15,3 +15,5 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.info("This module is in development.")
+
+# TODO: wire check_run_allowed() into tool agent run handlers when implemented.
