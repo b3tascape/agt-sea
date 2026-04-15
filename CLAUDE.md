@@ -51,13 +51,19 @@ frontend/
 │   ├── run_metadata.py      # Run metrics bar
 │   ├── progress.py          # Live node progress
 │   ├── footer.py            # Footer badge
+│   ├── error_state.py       # Failure UI (renders state.error on FAILED runs)
+│   ├── run_guard.py         # Per-session run counter gate (ADR 0013)
 │   └── labels.py            # Shared enum → display-label mappings
 └── themes/b3ta.css          # Theme CSS (single file, loaded once by app.py)
 tests/
-├── _helpers.py              # Shared utilities for manual integration tests
-├── test_strategist.py       # Strategist isolation test
-├── test_creative.py         # Strategist → Creative test
-└── test_pipeline.py         # Full pipeline integration test
+├── _helpers.py                      # Shared utilities for manual integration tests
+├── test_strategist.py               # Strategist isolation test (manual, real LLM)
+├── test_creative.py                 # Strategist → Creative test (manual, real LLM)
+├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
+├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
+├── test_creative_director_retry.py  # CD validation-retry helper pytest unit tests
+├── test_llm_provider.py             # get_llm() / retry-wrapper pytest unit tests
+└── test_run_guard.py                # Run guard counter pytest unit tests
 .streamlit/config.toml       # Streamlit config — pins base theme to light
 briefs/                      # Sample client briefs
 docs/
@@ -85,6 +91,8 @@ docs/
 - `get_llm()` accepts optional `provider` and `model` parameters for frontend sidebar overrides
 - Selectable model lists for the sidebar live in `config.AVAILABLE_MODELS` (one list per provider). The sidebar imports from there — do not redefine model lists in `frontend/components/sidebar.py`. Any provider's `DEFAULT_MODELS` entry must appear in its `AVAILABLE_MODELS` list or the sidebar default falls back to index 0.
 - Three philosophy fields live on `AgencyState`: `strategic_philosophy` (used by the Strategist), `creative_philosophy` (used by the Creative agent), and `cd_philosophy` (used by the Creative Director). All three default to `NEUTRAL`. The sidebar writes these to `st.session_state.strategic_philosophy`, `st.session_state.creative_philosophy`, and `st.session_state.cd_philosophy`; every page that builds an `AgencyState` must pass all three through.
+- **Safe-node wrapper** — every agent node is wrapped with `_safe_node()` at graph-build time in `graph/workflow.py`. New agents inherit failure handling by construction — do not add `try`/`except` inside agent functions. The error-string format is owned by `format_node_error(fn_name, exc)` in the same module; standalone pages that call agents directly outside the graph (e.g. `frontend/pages/strategy.py`, `frontend/pages/creative.py`) must import and use it to construct `state.error` so the display contract stays consistent. See ADR 0012.
+- **Failure contract** — `WorkflowStatus.FAILED` and `state.error` are the contract between the graph and the frontend. On failure, routing diverts to a `finalise_failed` node → `END`. Frontend pages check `state.status == WorkflowStatus.FAILED` after rehydration and render the `error_state` component instead of agent output. Routing functions begin with a uniform `if state.error is not None: return "failed"` guard — the mutation already happened in `_safe_node`.
 
 ## Agent Conventions
 
@@ -97,6 +105,7 @@ docs/
 - **Philosophy injection pattern** — Strategist, Creative, and Creative Director each build their system prompt via a module-level `_build_system_prompt(philosophy)` helper (Creative also has `_build_revision_prompt`). Each helper follows the *neutral-skip* rule: when the philosophy is `NEUTRAL`, `philosophy_section` stays empty and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded via the appropriate `load_creative_philosophy` / `load_strategic_philosophy` wrapper and injected into a dedicated section. Strategist and Creative read `state.strategic_philosophy` / `state.creative_philosophy` respectively; the Creative Director reads `state.cd_philosophy` (not `state.creative_philosophy`).
 - Strategist prompts are assembled from reusable pieces via `load_template()` (structural scaffold) and `load_guidance()` (technique-specific guidance) — don't hardcode the brief template or proposition guidance inline.
 - **Logging** — agents use stdlib `logging` for runtime diagnostics. Module-level convention: `logger = logging.getLogger(__name__)` at the top of the file, `logger.warning()` for recoverable anomalies (e.g. retry paths), `logger.error()` for failures. Introduced in Phase 6.1 alongside the CD validation-retry helper; Phase 6.4 will layer structured logging/tracing on top.
+- **Run guard** — every agent-invoking frontend page must call `check_run_allowed()` from `frontend/components/run_guard.py` before constructing `AgencyState` or calling an agent. If it returns `False`, render `render_run_limit_reached()` and `st.stop()`. The check-and-increment is atomic, so callers cannot forget to bump the counter. Cap is `config.DEMO_RUN_CAP` (default 10, env-overridable). See ADR 0013.
 
 ## Workflow Rules
 
@@ -117,7 +126,8 @@ docs/
 - API keys and config overrides go in Streamlit Cloud secrets dashboard, not .env
 - Per-provider model secrets (`ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL`) override defaults on Cloud for cost control
 - `.streamlit/config.toml` pins `base = "light"` so the app never falls through to Streamlit's dark theme regardless of user OS preference. All visual styling comes from `b3ta.css`.
-- `app.py` initialises session state defaults (philosophies, provider, model, thresholds) via `setdefault` before the sidebar renders, so pages never hit a missing key even if the sidebar fails on first load
+- `app.py` initialises session state defaults (philosophies, provider, model, thresholds, `run_count`) via `setdefault` before the sidebar renders, so pages never hit a missing key even if the sidebar fails on first load
+- Configurable thresholds live in `config.py` and are read via `_get_secret()`: `MAX_ITERATIONS` (default 3), `APPROVAL_THRESHOLD` (default 80.0), `LLM_MAX_RETRIES` (default 3), and `DEMO_RUN_CAP` (default 10). All four are overridable via env var or Streamlit secret.
 
 ## Current Phase & Roadmap
 

@@ -153,7 +153,13 @@ Application settings are centralised in `config.py` and accessed via helper func
 
 A bridge at module load injects API keys from `st.secrets` into `os.environ` so LangChain providers (which read keys directly from the environment) work on Streamlit Cloud without modification.
 
-Settings include: LLM provider, model name per provider, max iterations, approval threshold. All overridable via environment variables or Streamlit secrets (`LLM_PROVIDER`, `ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL`, `MAX_ITERATIONS`, `APPROVAL_THRESHOLD`).
+Settings include: LLM provider, model name per provider, max iterations, approval threshold, transport retry count, and the public-demo run cap. All overridable via environment variables or Streamlit secrets:
+
+- `LLM_PROVIDER`, `ANTHROPIC_MODEL`, `GOOGLE_MODEL`, `OPENAI_MODEL` — provider and per-provider model overrides
+- `MAX_ITERATIONS` (default `3`) — hard cap on creative loop iterations
+- `APPROVAL_THRESHOLD` (default `80.0`) — minimum CD score required for approval
+- `LLM_MAX_RETRIES` (default `3`) — attempts made by `wrap_with_transport_retry()` on transient transport errors (see ADR 0012)
+- `DEMO_RUN_CAP` (default `10`) — per-session run limit for the public demo (see ADR 0013)
 
 **Default models** (local/development tier), defined in `config.DEFAULT_MODELS`:
 - Anthropic: `claude-sonnet-4-6`
@@ -195,10 +201,14 @@ agt_sea/
 │       │       ├── creative/        # One .txt file per CreativePhilosophy enum value
 │       │       └── strategic/       # One .txt file per StrategicPhilosophy enum value
 ├── tests/
-│   ├── _helpers.py                  # Shared test utilities (load_brief, print_entry_fields)
-│   ├── test_strategist.py           # Strategist isolation test
-│   ├── test_creative.py             # Strategist -> Creative test
-│   └── test_pipeline.py             # Full pipeline integration test
+│   ├── _helpers.py                      # Shared test utilities (load_brief, print_entry_fields)
+│   ├── test_strategist.py               # Strategist isolation test (manual, real LLM)
+│   ├── test_creative.py                 # Strategist -> Creative test (manual, real LLM)
+│   ├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
+│   ├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
+│   ├── test_creative_director_retry.py  # CD validation-retry helper pytest unit tests
+│   ├── test_llm_provider.py             # get_llm() / retry-wrapper pytest unit tests
+│   └── test_run_guard.py                # Run guard counter pytest unit tests
 ├── frontend/
 │   ├── app.py                       # Navigation shell (entry point, session state defaults)
 │   ├── pages/
@@ -216,6 +226,8 @@ agt_sea/
 │   │   ├── run_metadata.py          # Run metrics bar
 │   │   ├── progress.py              # Live node progress
 │   │   ├── footer.py                # Footer badge
+│   │   ├── error_state.py           # Failure UI (renders state.error on FAILED runs)
+│   │   ├── run_guard.py             # Per-session run counter gate (ADR 0013)
 │   │   └── labels.py                # Shared enum → display-label mappings
 │   └── themes/
 │       └── b3ta.css                 # Theme CSS
@@ -283,13 +295,15 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 - **ADR 0009** — LLM provider and model override mechanism
 - **ADR 0010** — Filesystem-backed prompt injection pattern
 - **ADR 0011** — Rehydrate LangGraph output to Pydantic at the boundary
+- **ADR 0012** — Error handling and graceful degradation (two-layer retry, `FAILED` contract, `_safe_node` wrapper)
+- **ADR 0013** — Demo abuse mitigation via per-session run counter
 
 ## Build Sequence
 
 1. **MVP — Creative Pipeline** ← COMPLETE (deployed to Streamlit Cloud)
 2. **Standalone Strategic Agents (e.g. creative brief writer**)** ← COMPLETE (standalone, calls `run_strategist()` directly)
 3. **Standalone Creative Agents (discipline-specific specialists, different creative types)** ← COMPLETE (standalone, calls `run_creative()` directly)
-4. Error handling & graceful degradation (retries, fallbacks)
+4. **Error handling & graceful degradation (retries, failure contract)** ← COMPLETE (Phase 6.1 / ADRs 0012 & 0013)
 5. RAG-enhanced creative philosophies
 6. Human-in-the-loop approval points
 7. Structured logging & tracing (LangSmith)
@@ -306,7 +320,7 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 
 **Phase 6 — Refinement (current)**
 - [ ] Frontend refinement and UX polish
-- [ ] Error handling and graceful degradation
+- [x] Error handling and graceful degradation
 - [ ] Human-in-the-loop approval points (LangGraph interrupt/resume)
 - [ ] Structured logging and tracing (LangSmith)
 
