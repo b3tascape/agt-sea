@@ -121,11 +121,14 @@ The framework supports provider switching via configuration — change the `LLM_
 
 Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). This is the single source of truth passed through every graph node.
 
-**Enums**: `WorkflowStatus`, `AgentRole`, `LLMProvider`, `CreativePhilosophy`, `StrategicPhilosophy` — all `str, Enum` for type safety and serialisation. Both philosophy enums include a `NEUTRAL` value that bypasses philosophy injection entirely.
+**Enums**: `WorkflowStatus`, `AgentRole`, `LLMProvider`, `CreativePhilosophy`, `StrategicPhilosophy`, `Provenance`, `Taste` — all `str, Enum` for type safety and serialisation. All four lens enums (philosophies + provenance + taste) include a `NEUTRAL` value that bypasses prompt injection entirely. `Provenance` and `Taste` are Standard 2.0 additions (see ADR 0014); their presets are placeholders at this stage.
 
 **Supporting models**:
-- `CDEvaluation` — structured evaluation (score 0–100 with validation, strengths, weaknesses, direction)
+- `CDEvaluation` — structured evaluation used by Standard 1.0 (score 0–100 with validation, strengths, weaknesses, direction)
 - `AgentOutput` — single agent output with metadata (agent, provider, model, iteration, content, timestamp, optional evaluation)
+- `Territory` / `CampaignDeliverable` / `CampaignConcept` — Standard 2.0 creative artifacts (see ADR 0014). `Territory` is the atomic output of Creative 1; `CampaignConcept` is Creative 2's structured campaign (title, core idea, deliverables list, rationale)
+- `GraderEvaluation` — Standard 2.0 grader output (score 0–100 + rationale only, no qualitative feedback)
+- `CDSynthesis` / `ConceptScoreSummary` — Standard 2.0 final editorial judgement. Schema supports N concepts for the future parallel variant; the current graph passes one
 
 **State design**: Dual access pattern — latest outputs at top level (`creative_brief`, `creative_concept`, `cd_evaluation`) for quick access by downstream agents, plus a full ordered `history: list[AgentOutput]` for traceability and UI display.
 
@@ -142,6 +145,11 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 - `max_iterations` (default `3`) — hard cap on creative loop iterations
 - `iteration` — incremented by the Creative agent on each pass
 - `status` — tracks workflow lifecycle via `WorkflowStatus` enum
+
+Standard 2.0 extends the same state object (not a separate class). Additional fields slot into the existing groups (see [ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md)):
+- Input lenses: per-role provenance + taste — `creative1_provenance`, `creative1_taste`, `creative2_provenance`, `creative2_taste`, `cd_provenance`, `cd_taste` (all default `neutral`). The CD pair is shared by CD Feedback and CD Synthesis; the CD Grader is always neutral by contract.
+- Agent outputs — `territories`, `num_territories` (default `3`, range `1–10`), `selected_territory`, `territory_rejection_context`, `campaign_concept`, `grader_evaluation`, `cd_feedback_direction`, `cd_synthesis`.
+- Run configuration — per-agent temperature: `creative1_temperature`, `creative2_temperature`, `cd_feedback_temperature`, `cd_synthesis_temperature` (default `0.7`) and `grader_temperature` (default `0.0`, hardcoded for repeatable scoring). All bounded `0.0–1.0` to stay inside Anthropic's cap.
 
 Thresholds and max iterations are set per [ADR 0007](docs/adr/0007-revised-loop-thresholds.md), which supersedes the original values from [ADR 0006](docs/adr/0006-iterative-loop-design.md).
 
@@ -297,6 +305,7 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 - **ADR 0011** — Rehydrate LangGraph output to Pydantic at the boundary
 - **ADR 0012** — Error handling and graceful degradation (two-layer retry, `FAILED` contract, `_safe_node` wrapper)
 - **ADR 0013** — Demo abuse mitigation via per-session run counter
+- **ADR 0014** — Multi-stage creative pipeline with territory selection (Standard 2.0)
 
 ## Build Sequence
 
@@ -323,6 +332,18 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 - [x] Error handling and graceful degradation
 - [ ] Human-in-the-loop approval points (LangGraph interrupt/resume)
 - [ ] Structured logging and tracing (LangSmith)
+
+**Standard 2.0 — Multi-Stage Creative Pipeline ([ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md))**
+
+Splits creative into a two-stage pipeline with a territory-selection interrupt: Creative 1 generates N territories, the user picks one, Creative 2 develops it into a full campaign, and the Creative Director role fans out into Grader, Feedback, and Synthesis. Provenance and Taste join Philosophy as per-role prompt-injection lenses.
+
+- [x] State model, new enums, new agent conventions (Phase A)
+- [ ] Prompt infrastructure, temperature support, sidebar controls (Phase B)
+- [ ] Creative 1 agent + standalone Creative page tab (Phases C1 / C-FE)
+- [ ] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
+- [ ] v2 graph with territory-selection interrupt (Phase D)
+- [ ] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
+- [ ] End-to-end testing, architecture diagram, docs sweep (Phase F)
 
 **Future Modules**
 - [ ] Tools - a suite of creative tools (page visible with holding message)

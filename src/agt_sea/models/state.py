@@ -70,12 +70,43 @@ class StrategicPhilosophy(str, Enum):
     COMMERCIAL_PRAGMATIST = "commercial_pragmatist"
 
 
+class Provenance(str, Enum):
+    """
+    Creative practitioner background presets (upbringing, worldview) injected
+    into Creative 1, Creative 2, CD Feedback, and CD Synthesis prompts. Each
+    value (except NEUTRAL) maps to a prompt file in `prompts/provenance/`.
+    NEUTRAL bypasses injection entirely.
+
+    Prompt content is authored in Phase B of the Standard 2.0 workplan.
+    """
+    NEUTRAL = "neutral"
+    NORTHERN_WORKING_CLASS = "northern_working_class"
+    METROPOLITAN_ACADEMIC = "metropolitan_academic"
+    DIY_SUBCULTURE = "diy_subculture"
+
+
+class Taste(str, Enum):
+    """
+    Creative taste presets (passions, dislikes, influences, aesthetic
+    preferences) injected into Creative 1, Creative 2, CD Feedback, and CD
+    Synthesis prompts. Each value (except NEUTRAL) maps to a prompt file in
+    `prompts/taste/`. NEUTRAL bypasses injection entirely.
+
+    Prompt content is authored in Phase B of the Standard 2.0 workplan.
+    """
+    NEUTRAL = "neutral"
+    UNDERGROUND_REFERENTIAL = "underground_referential"
+    AVANT_GARDE = "avant_garde"
+    POP_MAXIMALIST = "pop_maximalist"
+    CRAFT_TRADITIONALIST = "craft_traditionalist"
+
+
 # ---------------------------------------------------------------------------
 # Supporting models
 # ---------------------------------------------------------------------------
 
 class CDEvaluation(BaseModel):
-    """Structured evaluation from the Creative Director."""
+    """Structured evaluation from the Creative Director (Standard 1.0)."""
     score: float = Field(
         ...,
         ge=0,
@@ -120,6 +151,129 @@ class AgentOutput(BaseModel):
     )
 
 
+# [2.0] Creative artifacts produced by the multi-stage pipeline (see ADR 0014).
+
+class Territory(BaseModel):
+    """
+    A single creative territory produced by Creative 1. Tight artifact:
+    central creative thought only — no execution details.
+    """
+    title: str = Field(
+        ...,
+        description="Short, evocative name for the territory.",
+    )
+    core_idea: str = Field(
+        ...,
+        description="The central creative thought in 1–2 sentences.",
+    )
+    why_it_works: str = Field(
+        ...,
+        description="Brief rationale connecting the idea back to the brief.",
+    )
+
+
+class CampaignDeliverable(BaseModel):
+    """A single deliverable within a campaign concept (e.g. a channel activation)."""
+    name: str = Field(
+        ...,
+        description="Deliverable name (e.g. 'Launch film', 'OOH series').",
+    )
+    explanation: str = Field(
+        ...,
+        description="How the deliverable executes the core idea.",
+    )
+
+
+class CampaignConcept(BaseModel):
+    """
+    Structured output of Creative 2 — a selected territory developed into a
+    full campaign with deliverables. Enforced via `with_structured_output()`.
+    """
+    title: str = Field(
+        ...,
+        description="Campaign title.",
+    )
+    core_idea: str = Field(
+        ...,
+        description="The central creative thought carried from the selected territory.",
+    )
+    deliverables: list[CampaignDeliverable] = Field(
+        default_factory=list,
+        description="Concrete executions across channels/formats.",
+    )
+    why_it_works: str = Field(
+        ...,
+        description="Rationale for why this campaign delivers on the brief.",
+    )
+
+
+class GraderEvaluation(BaseModel):
+    """
+    Structured output of the CD Grader. Scoring only — no qualitative
+    feedback, no philosophy injection. Temperature is hardcoded to 0 at the
+    agent level for repeatable scoring.
+    """
+    score: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description=(
+            "Quality score out of 100. Drives the approval-gate routing in "
+            "the Standard 2.0 graph (compared against `approval_threshold`)."
+        ),
+    )
+    rationale: str = Field(
+        ...,
+        description="Brief justification for the score.",
+    )
+
+
+class ConceptScoreSummary(BaseModel):
+    """
+    Per-concept summary inside `CDSynthesis`. Built to support N concepts so
+    the model carries forward into the future parallel Creative 2 variant;
+    the current graph passes a single-element list.
+    """
+    title: str = Field(
+        ...,
+        description="Campaign concept title being summarised.",
+    )
+    score: float = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Grader score for this concept.",
+    )
+    assessment: str = Field(
+        ...,
+        description="CD's short editorial read on this concept.",
+    )
+
+
+class CDSynthesis(BaseModel):
+    """
+    Structured output of CD Synthesis — final editorial judgement delivered
+    to the user. Schema supports N concepts (see `ConceptScoreSummary`); the
+    simplified Standard 2.0 graph passes one.
+    """
+    selected_title: str = Field(
+        ...,
+        description="Title of the concept the CD recommends.",
+    )
+    recommendation: str = Field(
+        ...,
+        description="Narrative recommendation presented to the user.",
+    )
+    score_summary: list[ConceptScoreSummary] = Field(
+        default_factory=list,
+        description="Per-concept summaries. Single element in the simplified v2 graph.",
+    )
+    comparison_notes: str | None = Field(
+        default=None,
+        description="Cross-concept commentary. None when only one concept is evaluated.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Graph state
 # ---------------------------------------------------------------------------
@@ -148,6 +302,32 @@ class AgencyState(BaseModel):
     cd_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.NEUTRAL,
         description="The creative lens the Creative Director uses to evaluate and direct work.",
+    )
+    # [2.0] Per-role provenance / taste lenses. CD pair is shared by CD Feedback
+    # and CD Synthesis; CD Grader is always neutral by contract.
+    creative1_provenance: Provenance = Field(
+        default=Provenance.NEUTRAL,
+        description="Provenance lens for Creative 1 (territory generation).",
+    )
+    creative1_taste: Taste = Field(
+        default=Taste.NEUTRAL,
+        description="Taste lens for Creative 1 (territory generation).",
+    )
+    creative2_provenance: Provenance = Field(
+        default=Provenance.NEUTRAL,
+        description="Provenance lens for Creative 2 (campaign development).",
+    )
+    creative2_taste: Taste = Field(
+        default=Taste.NEUTRAL,
+        description="Taste lens for Creative 2 (campaign development).",
+    )
+    cd_provenance: Provenance = Field(
+        default=Provenance.NEUTRAL,
+        description="Provenance lens shared by CD Feedback and CD Synthesis.",
+    )
+    cd_taste: Taste = Field(
+        default=Taste.NEUTRAL,
+        description="Taste lens shared by CD Feedback and CD Synthesis.",
     )
 
     # --- LLM overrides (optional — fall back to config defaults when None) ---
@@ -179,6 +359,48 @@ class AgencyState(BaseModel):
         default=None,
         description="Latest evaluation from the creative director.",
     )
+    # [2.0] Territory stage outputs + user input at the interrupt.
+    territories: list[Territory] = Field(
+        default_factory=list,
+        description="Creative 1 output. Length == `num_territories` on success.",
+    )
+    num_territories: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="How many territories Creative 1 should generate.",
+    )
+    selected_territory: Territory | None = Field(
+        default=None,
+        description="Territory chosen by the user at the interrupt; input to Creative 2.",
+    )
+    territory_rejection_context: str | None = Field(
+        default=None,
+        description=(
+            "Optional user feedback supplied when rerunning Creative 1 "
+            "instead of selecting a territory. Steers the next batch."
+        ),
+    )
+    # [2.0] Campaign stage outputs.
+    campaign_concept: CampaignConcept | None = Field(
+        default=None,
+        description="Creative 2 output — structured campaign with deliverables.",
+    )
+    grader_evaluation: GraderEvaluation | None = Field(
+        default=None,
+        description="Latest CD Grader score + rationale for the current campaign.",
+    )
+    cd_feedback_direction: str | None = Field(
+        default=None,
+        description=(
+            "Qualitative revision direction produced by CD Feedback on rejected "
+            "campaigns. Read by Creative 2 on its revision path."
+        ),
+    )
+    cd_synthesis: CDSynthesis | None = Field(
+        default=None,
+        description="Final editorial judgement emitted by CD Synthesis before END.",
+    )
 
     # --- Iteration tracking ---
     iteration: int = Field(
@@ -192,6 +414,38 @@ class AgencyState(BaseModel):
     approval_threshold: float = Field(
         default=80.0,
         description="Minimum cd_score required for approval.",
+    )
+    # [2.0] Per-agent temperature. Grader is hardcoded to 0.0 for repeatable
+    # scoring and is not sidebar-exposed; kept on state for traceability.
+    creative1_temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature passed to `get_llm()` when invoking Creative 1.",
+    )
+    creative2_temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature passed to `get_llm()` when invoking Creative 2.",
+    )
+    cd_feedback_temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for the CD Feedback agent (qualitative revision direction).",
+    )
+    cd_synthesis_temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for the CD Synthesis agent (final editorial judgement).",
+    )
+    grader_temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for the CD Grader — hardcoded default for repeatable scoring.",
     )
 
     # --- History ---

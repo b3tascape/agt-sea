@@ -19,3 +19,4 @@ This directory contains the Architecture Decision Records (ADRs) for agt_sea. Ea
 | [0011](0011-rehydrate-at-boundary.md) | Rehydrate LangGraph Output to Pydantic at the Boundary | Accepted |
 | [0012](0012-error-handling-and-graceful-degradation.md) | Error Handling and Graceful Degradation | Accepted |
 | [0013](0013-demo-abuse-mitigation.md) | Demo Abuse Mitigation via Per-Session Run Counter | Accepted |
+| [0014](0014-multi-stage-creative-pipeline.md) | Multi-Stage Creative Pipeline with Territory Selection | Accepted |
