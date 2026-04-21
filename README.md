@@ -60,7 +60,8 @@ The graph is defined in `graph/workflow.py` using LangGraph's `StateGraph`. Two 
 | Agent | File | Role | Output |
 |-------|------|------|--------|
 | **Strategist** | `agents/strategist.py` | Transforms the raw client brief into a focused creative brief | Challenge, audience, insight, proposition, tone |
-| **Creative** | `agents/creative.py` | Generates three distinct creative approaches per iteration | Concept title, core idea, execution, rationale |
+| **Creative** (1.0) | `agents/creative.py` | Generates three distinct creative approaches per iteration | Concept title, core idea, execution, rationale |
+| **Creative 1** (2.0) | `agents/creative1.py` | Generates *n* distinct creative territories from the brief (default 3, configurable 1–10 via `num_territories`). Optional `territory_rejection_context` steers a regenerated batch. | Structured `list[Territory]` — each with title, core idea, why it works |
 | **Creative Director** | `agents/creative_director.py`| Evaluates creative work through a chosen philosophical lens | Structured score (0–100), strengths, weaknesses, direction |
 
 The Creative agent has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history.
@@ -210,7 +211,8 @@ agt_sea/
 │       ├── config.py                # Settings, env vars, st.secrets bridge
 │       ├── agents/
 │       │   ├── strategist.py        # Brief -> creative brief
-│       │   ├── creative.py          # Creative brief -> concepts
+│       │   ├── creative.py          # Creative brief -> concepts (1.0)
+│       │   ├── creative1.py         # [2.0] Creative brief -> territories
 │       │   └── creative_director.py # Concepts -> evaluation
 │       ├── graph/
 │       │   └── workflow.py          # LangGraph orchestration
@@ -231,6 +233,7 @@ agt_sea/
 │   ├── _helpers.py                      # Shared test utilities (load_brief, print_entry_fields)
 │   ├── test_strategist.py               # Strategist isolation test (manual, real LLM)
 │   ├── test_creative.py                 # Strategist -> Creative test (manual, real LLM)
+│   ├── test_creative1.py                # [2.0] Strategist -> Creative 1 test (manual, real LLM)
 │   ├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
 │   ├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
 │   ├── test_creative_director_retry.py  # CD validation-retry helper pytest unit tests
@@ -413,6 +416,7 @@ uv run python tests/test_pipeline.py
 ```bash
 uv run python tests/test_strategist.py
 uv run python tests/test_creative.py
+uv run python tests/test_creative1.py
 ```
 
 ### Interactive pipeline exploration

@@ -28,9 +28,15 @@ class WorkflowStatus(str, Enum):
 
 
 class AgentRole(str, Enum):
-    """Identifies which agent produced an output."""
+    """Identifies which agent produced an output.
+
+    Standard 1.0 and Standard 2.0 share this namespace. Additional
+    Standard 2.0 agents (Creative 2, CD Grader, CD Feedback, CD Synthesis)
+    land in Phase C2 of the ADR 0014 workplan.
+    """
     STRATEGIST = "strategist"
-    CREATIVE = "creative"
+    CREATIVE = "creative"              # Standard 1.0 creative agent
+    CREATIVE_1 = "creative_1"          # [2.0] Territory generation
     CREATIVE_DIRECTOR = "creative_director"
 
 
