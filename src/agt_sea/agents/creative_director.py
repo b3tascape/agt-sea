@@ -136,7 +136,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
     # is applied — .with_retry() returns a RunnableRetry that has no
     # with_structured_output method. So we fetch the raw chat model, apply
     # structured output, then wrap the composed runnable with transport retry.
-    llm = get_llm(provider=provider, model=model, with_retry=False)
+    llm = get_llm(provider=provider, model=model, temperature=0.7, with_retry=False)
 
     system_prompt = _build_system_prompt(state.cd_philosophy)
 

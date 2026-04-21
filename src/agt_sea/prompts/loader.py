@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agt_sea.models.state import CreativePhilosophy, StrategicPhilosophy
+from agt_sea.models.state import (
+    CreativePhilosophy,
+    Provenance,
+    StrategicPhilosophy,
+    Taste,
+)
 
 _PROMPTS_DIR = Path(__file__).parent
 
@@ -51,6 +56,26 @@ def load_strategic_philosophy(philosophy: StrategicPhilosophy) -> str:
     Convenience wrapper around load_prompt() for the strategic philosophies category.
     """
     return load_prompt("philosophies/strategic", philosophy.value)
+
+
+def load_provenance(provenance: Provenance) -> str:
+    """Load a provenance prompt from disk.
+
+    Convenience wrapper around load_prompt() for the provenance category.
+    Callers must check for NEUTRAL before invoking — NEUTRAL bypasses
+    injection entirely and there is no ``neutral.txt`` on disk.
+    """
+    return load_prompt("provenance", provenance.value)
+
+
+def load_taste(taste: Taste) -> str:
+    """Load a taste prompt from disk.
+
+    Convenience wrapper around load_prompt() for the taste category.
+    Callers must check for NEUTRAL before invoking — NEUTRAL bypasses
+    injection entirely and there is no ``neutral.txt`` on disk.
+    """
+    return load_prompt("taste", taste.value)
 
 
 def load_template(name: str) -> str:

@@ -143,7 +143,7 @@ def wrap_with_transport_retry(
 def get_llm(
     provider: LLMProvider | None = None,
     model: str | None = None,
-    temperature: float = 0.7,
+    temperature: float | None = None,
     with_retry: bool = True,
 ) -> Runnable:
     """Return a LangChain chat model for the specified provider.
@@ -170,8 +170,12 @@ def get_llm(
             frontend sidebar selector), this is used directly instead
             of reading from config. When None, falls back to
             get_model_name(provider) as before.
-        temperature: Sampling temperature. Higher values produce more
-            creative output.
+        temperature: Sampling temperature. When None (the default) the
+            temperature argument is omitted from the chat-model
+            constructor and each provider's own default applies. When
+            set (0.0–1.0), the value is passed through to the underlying
+            chat model. Orthogonal to ``with_retry`` — temperature is
+            fixed at construction, retry wrapping happens afterwards.
         with_retry: When True (the default), the returned chat model
             is wrapped with transport-level retries. Set to False when
             you need to compose BaseChatModel-only methods such as
@@ -185,27 +189,34 @@ def get_llm(
     provider = provider or get_llm_provider()
     model_name = model or get_model_name(provider)
 
+    # Only include ``temperature`` in the constructor kwargs when the
+    # caller has explicitly supplied one. Passing ``None`` through would
+    # override each provider SDK's default with a null value.
+    extra_kwargs: dict[str, float] = {}
+    if temperature is not None:
+        extra_kwargs["temperature"] = temperature
+
     chat_model: BaseChatModel
     if provider == LLMProvider.ANTHROPIC:
         from langchain_anthropic import ChatAnthropic
 
         chat_model = ChatAnthropic(
             model=model_name,
-            temperature=temperature,
+            **extra_kwargs,
         )
     elif provider == LLMProvider.GOOGLE:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         chat_model = ChatGoogleGenerativeAI(
             model=model_name,
-            temperature=temperature,
+            **extra_kwargs,
         )
     elif provider == LLMProvider.OPENAI:
         from langchain_openai import ChatOpenAI
 
         chat_model = ChatOpenAI(
             model=model_name,
-            temperature=temperature,
+            **extra_kwargs,
         )
     else:
         # Unreachable via the enum, but guards against future additions

@@ -14,7 +14,12 @@ import streamlit as st
 from agt_sea.config import AVAILABLE_MODELS, get_model_name
 from agt_sea.models.state import LLMProvider
 
-from components.labels import CREATIVE_PHILOSOPHY_LABELS, STRATEGIC_PHILOSOPHY_LABELS
+from components.labels import (
+    CREATIVE_PHILOSOPHY_LABELS,
+    PROVENANCE_LABELS,
+    STRATEGIC_PHILOSOPHY_LABELS,
+    TASTE_LABELS,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -26,7 +31,14 @@ def render_sidebar() -> None:
 
     Writes to st.session_state keys:
         strategic_philosophy, creative_philosophy, cd_philosophy,
-        llm_provider, llm_model, max_iterations, approval_threshold
+        llm_provider, llm_model, max_iterations, approval_threshold.
+
+        Standard 2.0 (inside the collapsible "STANDARD 2.0 CONTROLS"
+        expander — unused by Standard 1.0):
+            creative1_provenance, creative1_taste, creative1_temperature,
+            creative2_provenance, creative2_taste, creative2_temperature,
+            cd_provenance, cd_taste, cd_feedback_temperature,
+            cd_synthesis_temperature.
     """
     # Logo is rendered via st.logo() in app.py, above the page nav.
 
@@ -108,6 +120,104 @@ def render_sidebar() -> None:
         help="Minimum CD score required for approval.",
     )
     st.session_state.approval_threshold = float(threshold)
+
+    st.sidebar.markdown("---")
+
+    # --- Standard 2.0 controls (per-role provenance/taste + per-agent temperature) ---
+    # All controls inside this expander are v2-specific — Standard 1.0 ignores
+    # every field. Grouped behind a single collapsed expander so the sidebar
+    # stays approachable for users only running the v1 workflow. Streamlit
+    # does not allow nested expanders, so each role is a markdown sub-heading.
+    with st.sidebar.expander("STANDARD 2.0 CONTROLS", expanded=False):
+        st.markdown("**Creative 1** — territory generation")
+        st.session_state.creative1_provenance = st.selectbox(
+            "PROVENANCE: CREATIVE 1",
+            options=list(PROVENANCE_LABELS.keys()),
+            format_func=lambda x: PROVENANCE_LABELS[x],
+            help="Background/upbringing lens injected into Creative 1.",
+            key="sb_creative1_provenance",
+        )
+        st.session_state.creative1_taste = st.selectbox(
+            "TASTE: CREATIVE 1",
+            options=list(TASTE_LABELS.keys()),
+            format_func=lambda x: TASTE_LABELS[x],
+            help="Aesthetic/influence lens injected into Creative 1.",
+            key="sb_creative1_taste",
+        )
+        st.session_state.creative1_temperature = st.slider(
+            "TEMPERATURE: CREATIVE 1",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.05,
+            help="Sampling temperature for Creative 1 (territory generation).",
+            key="sb_creative1_temperature",
+        )
+
+        st.markdown("---")
+        st.markdown("**Creative 2** — campaign development")
+        st.session_state.creative2_provenance = st.selectbox(
+            "PROVENANCE: CREATIVE 2",
+            options=list(PROVENANCE_LABELS.keys()),
+            format_func=lambda x: PROVENANCE_LABELS[x],
+            help="Background/upbringing lens injected into Creative 2.",
+            key="sb_creative2_provenance",
+        )
+        st.session_state.creative2_taste = st.selectbox(
+            "TASTE: CREATIVE 2",
+            options=list(TASTE_LABELS.keys()),
+            format_func=lambda x: TASTE_LABELS[x],
+            help="Aesthetic/influence lens injected into Creative 2.",
+            key="sb_creative2_taste",
+        )
+        st.session_state.creative2_temperature = st.slider(
+            "TEMPERATURE: CREATIVE 2",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.05,
+            help="Sampling temperature for Creative 2 (campaign development).",
+            key="sb_creative2_temperature",
+        )
+
+        st.markdown("---")
+        st.markdown("**Creative Director** — feedback + synthesis")
+        st.caption(
+            "Provenance and taste are shared by CD Feedback and CD Synthesis. "
+            "CD Grader is always neutral by contract."
+        )
+        st.session_state.cd_provenance = st.selectbox(
+            "PROVENANCE: CD",
+            options=list(PROVENANCE_LABELS.keys()),
+            format_func=lambda x: PROVENANCE_LABELS[x],
+            help="Background/upbringing lens for CD Feedback and CD Synthesis.",
+            key="sb_cd_provenance",
+        )
+        st.session_state.cd_taste = st.selectbox(
+            "TASTE: CD",
+            options=list(TASTE_LABELS.keys()),
+            format_func=lambda x: TASTE_LABELS[x],
+            help="Aesthetic/influence lens for CD Feedback and CD Synthesis.",
+            key="sb_cd_taste",
+        )
+        st.session_state.cd_feedback_temperature = st.slider(
+            "TEMPERATURE: CD FEEDBACK",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.05,
+            help="Sampling temperature for CD Feedback (qualitative revision direction).",
+            key="sb_cd_feedback_temperature",
+        )
+        st.session_state.cd_synthesis_temperature = st.slider(
+            "TEMPERATURE: CD SYNTHESIS",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.05,
+            help="Sampling temperature for CD Synthesis (final editorial judgement).",
+            key="sb_cd_synthesis_temperature",
+        )
 
     st.sidebar.markdown("---")
 

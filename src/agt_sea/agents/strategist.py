@@ -75,7 +75,7 @@ def run_strategist(state: AgencyState) -> AgencyState:
     """
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
-    llm = get_llm(provider=provider, model=model)
+    llm = get_llm(provider=provider, model=model, temperature=0.7)
 
     messages = [
         SystemMessage(content=_build_system_prompt(state.strategic_philosophy)),

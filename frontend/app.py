@@ -47,7 +47,12 @@ st.logo(
 # Sidebar — global parameters, footer
 # ---------------------------------------------------------------------------
 
-from agt_sea.models.state import CreativePhilosophy, StrategicPhilosophy  # noqa: E402
+from agt_sea.models.state import (  # noqa: E402
+    CreativePhilosophy,
+    Provenance,
+    StrategicPhilosophy,
+    Taste,
+)
 from agt_sea.config import get_llm_provider, get_model_name  # noqa: E402
 
 # Initialise session state defaults so pages never hit a missing key,
@@ -61,6 +66,18 @@ _defaults: dict[str, object] = {
     "max_iterations": 3,
     "approval_threshold": 80.0,
     "run_count": 0,
+    # [2.0] Per-role provenance/taste + per-agent temperature. Mirrors the
+    # new controls inside the sidebar's "STANDARD 2.0 CONTROLS" expander.
+    "creative1_provenance": Provenance.NEUTRAL,
+    "creative1_taste": Taste.NEUTRAL,
+    "creative1_temperature": 0.7,
+    "creative2_provenance": Provenance.NEUTRAL,
+    "creative2_taste": Taste.NEUTRAL,
+    "creative2_temperature": 0.7,
+    "cd_provenance": Provenance.NEUTRAL,
+    "cd_taste": Taste.NEUTRAL,
+    "cd_feedback_temperature": 0.7,
+    "cd_synthesis_temperature": 0.7,
 }
 for _key, _val in _defaults.items():
     st.session_state.setdefault(_key, _val)

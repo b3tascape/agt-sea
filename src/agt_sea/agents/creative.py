@@ -107,7 +107,7 @@ def run_creative(state: AgencyState) -> AgencyState:
     """
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
-    llm = get_llm(provider=provider, model=model)
+    llm = get_llm(provider=provider, model=model, temperature=0.7)
 
     # First iteration: work from brief only
     # Subsequent iterations: incorporate CD feedback

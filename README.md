@@ -94,6 +94,21 @@ Each agent runs through a configurable philosophical lens, set independently in 
 | Brand World | Builds a coherent brand universe with distinctive codes |
 | Commercial Pragmatist | Prioritises clarity, commercial outcomes, and execution realism |
 
+**Provenance and Taste** (Standard 2.0) — two additional prompt-injection categories scoped per creative role (Creative 1, Creative 2, CD). Filesystem-backed under `prompts/provenance/` and `prompts/taste/`, loaded via `load_provenance()` / `load_taste()` in `prompts/loader.py`. Same neutral-skip convention as the philosophies — callers check for `NEUTRAL` before loading. Initial `.txt` presets are placeholder prose to be replaced with real content later:
+
+| Provenance | Lens |
+|-----------|------|
+| Northern Working Class | Grounded, anti-pretension, craft-over-abstraction instinct |
+| Metropolitan Academic | Reads culture through theory; rigour, reference, layered interpretation |
+| DIY Subculture | Improvisational, anti-institutional, energy over polish |
+
+| Taste | Lens |
+|-------|------|
+| Underground / Referential | Deep-crate, reward-close-attention, distrusts work that shouts |
+| Avant-Garde | Art-world-adjacent, radical, unresolved |
+| Pop Maximalist | Big, loud, joyful, committed, earns its place in the feed |
+| Craft Traditionalist | Long-lineage typography, headlines and images with staying power |
+
 ---
 
 ## Tech Stack
@@ -178,6 +193,8 @@ The set of models selectable in the sidebar lives in `config.AVAILABLE_MODELS` (
 
 **Deployment note**: Streamlit Cloud uses per-provider model secrets (e.g. `ANTHROPIC_MODEL=claude-haiku-4-5-20251001`) set in the secrets dashboard for cost control. The sidebar model selector defaults to whatever the config resolves for the active provider.
 
+**Temperature**: `get_llm()` accepts an optional `temperature: float | None` parameter. When `None` (the default) the argument is omitted from the underlying chat-model constructor and each provider's server-side default applies; when set it is passed through to `ChatAnthropic` / `ChatGoogleGenerativeAI` / `ChatOpenAI`. Standard 1.0 agents pass `temperature=0.7` explicitly to preserve their prior behaviour. Standard 2.0 agents read per-agent temperature from `AgencyState` (Creative 1, Creative 2, CD Feedback, CD Synthesis — default `0.7`; CD Grader hardcoded to `0.0` for repeatable scoring).
+
 ---
 
 
@@ -202,9 +219,11 @@ agt_sea/
 │       ├── models/
 │       │   └── state.py             # Pydantic data models & enums
 │       ├── prompts/
-│       │   ├── loader.py            # load_prompt() + load_creative_philosophy / load_strategic_philosophy / load_template / load_guidance
+│       │   ├── loader.py            # load_prompt() + load_creative_philosophy / load_strategic_philosophy / load_provenance / load_taste / load_template / load_guidance
 │       │   ├── templates/           # Reusable structural scaffolds (e.g. creative_brief.txt)
 │       │   ├── guidance/            # Technique-specific guidance injected into agent prompts
+│       │   ├── provenance/          # [2.0] One .txt file per non-NEUTRAL Provenance enum value
+│       │   ├── taste/               # [2.0] One .txt file per non-NEUTRAL Taste enum value
 │       │   └── philosophies/
 │       │       ├── creative/        # One .txt file per CreativePhilosophy enum value
 │       │       └── strategic/       # One .txt file per StrategicPhilosophy enum value
@@ -268,6 +287,7 @@ agt_sea/
 
 - API keys: `.env` in project root (gitignored)
 - Philosophy prompts: plain text files in `prompts/philosophies/creative/` and `prompts/philosophies/strategic/`, loaded by the convenience wrappers in `prompts/loader.py` (future: RAG-enhanced)
+- Provenance and taste prompts (Standard 2.0): plain text files in `prompts/provenance/` and `prompts/taste/`, loaded by `load_provenance()` / `load_taste()` — same neutral-skip convention as the philosophy wrappers
 - Prompt templates & guidance: plain text files in `prompts/templates/` and `prompts/guidance/`, loaded by `load_template()` / `load_guidance()` and composed inside agent `_build_system_prompt()` helpers
 - Agent system prompts: assembled inline in agent files via `_build_system_prompt()` helpers that compose templates, guidance, and philosophy text
 - Sample briefs: `briefs/` directory
