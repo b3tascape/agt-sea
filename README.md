@@ -2,7 +2,7 @@
 
 An AI-powered creative marketing tool for brands and agencies offering a number of services designed to improve creative output. 
 
-The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development.
+The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `c1_territory` (default) for Standard 2.0 territory generation via the Creative 1 agent, and `c0_original` for the original single-shot creative agent.
 
 A Strategist writes the creative brief, a Creative generates ideas, and a Creative Director evaluates the work through a configurable creative philosophy. The system iterates until the work meets the quality threshold or the iteration budget is exhausted.
 
@@ -61,7 +61,7 @@ The graph is defined in `graph/workflow.py` using LangGraph's `StateGraph`. Two 
 |-------|------|------|--------|
 | **Strategist** | `agents/strategist.py` | Transforms the raw client brief into a focused creative brief | Challenge, audience, insight, proposition, tone |
 | **Creative** (1.0) | `agents/creative.py` | Generates three distinct creative approaches per iteration | Concept title, core idea, execution, rationale |
-| **Creative 1** (2.0) | `agents/creative1.py` | Generates *n* distinct creative territories from the brief (default 3, configurable 1–10 via `num_territories`). Optional `territory_rejection_context` steers a regenerated batch. | Structured `list[Territory]` — each with title, core idea, why it works |
+| **Creative 1** (2.0) | `agents/creative1.py` | Generates *n* distinct creative territories from the brief (default 3, configurable 1–12 via `num_territories`). Optional `territory_rejection_context` steers a regenerated batch. | Structured `list[Territory]` — each with title, core idea, why it works |
 | **Creative Director** | `agents/creative_director.py`| Evaluates creative work through a chosen philosophical lens | Structured score (0–100), strengths, weaknesses, direction |
 
 The Creative agent has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history.
@@ -164,7 +164,7 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 
 Standard 2.0 extends the same state object (not a separate class). Additional fields slot into the existing groups (see [ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md)):
 - Input lenses: per-role provenance + taste — `creative1_provenance`, `creative1_taste`, `creative2_provenance`, `creative2_taste`, `cd_provenance`, `cd_taste` (all default `neutral`). The CD pair is shared by CD Feedback and CD Synthesis; the CD Grader is always neutral by contract.
-- Agent outputs — `territories`, `num_territories` (default `3`, range `1–10`), `selected_territory`, `territory_rejection_context`, `campaign_concept`, `grader_evaluation`, `cd_feedback_direction`, `cd_synthesis`.
+- Agent outputs — `territories`, `num_territories` (default `3`, range `1–12`), `selected_territory`, `territory_rejection_context`, `campaign_concept`, `grader_evaluation`, `cd_feedback_direction`, `cd_synthesis`.
 - Run configuration — per-agent temperature: `creative1_temperature`, `creative2_temperature`, `cd_feedback_temperature`, `cd_synthesis_temperature` (default `0.7`) and `grader_temperature` (default `0.0`, hardcoded for repeatable scoring). All bounded `0.0–1.0` to stay inside Anthropic's cap.
 
 Thresholds and max iterations are set per [ADR 0007](docs/adr/0007-revised-loop-thresholds.md), which supersedes the original values from [ADR 0006](docs/adr/0006-iterative-loop-design.md).
@@ -258,6 +258,7 @@ agt_sea/
 │   │   ├── footer.py                # Footer badge
 │   │   ├── error_state.py           # Failure UI (renders state.error on FAILED runs)
 │   │   ├── run_guard.py             # Per-session run counter gate (ADR 0013)
+│   │   ├── territory_cards.py       # [2.0] Renders list[Territory] as modular bordered cards
 │   │   └── labels.py                # Shared enum → display-label mappings
 │   └── themes/
 │       └── b3ta.css                 # Theme CSS

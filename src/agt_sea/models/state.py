@@ -373,7 +373,7 @@ class AgencyState(BaseModel):
     num_territories: int = Field(
         default=3,
         ge=1,
-        le=10,
+        le=12,
         description="How many territories Creative 1 should generate.",
     )
     selected_territory: Territory | None = Field(

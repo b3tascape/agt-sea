@@ -140,6 +140,16 @@ section[data-testid="stSidebar"] hr {
     letter-spacing: -0.3px;
 }
 
+/* --- H4 — Cormorant Garamond, used for card titles (e.g. territory cards) --- */
+.stApp h4 {
+    font-family: var(--heading-font) !important;
+    font-style: normal !important;
+    font-weight: 500 !important;
+    font-size: 22px !important;
+    color: var(--dark) !important;
+    letter-spacing: -0.3px;
+}
+
 /* --- Body text --- */
 .stApp .stMarkdown p,
 .stApp .stMarkdown li {
@@ -350,6 +360,19 @@ details[open] {
     font-weight: 700 !important;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+/* --- Territory card field labels ("Core idea", "Why it works") ---
+   Raw-HTML <p class="territory-label"> renders as standard emboldened
+   body copy. The scoped class exists so the label opts out of the
+   `.stColumn .stMarkdown strong` rule above, which otherwise forces
+   Montserrat caps on bold text inside columns. */
+.stApp p.territory-label {
+    font-family: var(--body-font) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: var(--dark) !important;
+    margin: 0.75rem 0 0.25rem 0 !important;
 }
 
 /* --- Tooltip --- */

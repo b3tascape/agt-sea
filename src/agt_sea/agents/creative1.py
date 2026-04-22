@@ -72,7 +72,7 @@ def _build_system_prompt(
     all.
 
     ``num_territories`` is interpolated into the prompt so the agent
-    asks for exactly the count the state requests (bounded 1-10 at the
+    asks for exactly the count the state requests (bounded 1-12 at the
     state layer via ``AgencyState.num_territories``).
     """
     philosophy_section = ""
