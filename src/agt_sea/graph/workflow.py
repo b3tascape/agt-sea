@@ -74,8 +74,8 @@ def _safe_node(
     divert the run to ``finalise_failed``.
 
     Bare ``except Exception`` is deliberate: it catches ``pydantic.
-    ValidationError`` (including the second-attempt failure re-raised by the
-    CD's ``_invoke_with_validation_retry``) via
+    ValidationError`` (including the second-attempt failure re-raised by
+    ``invoke_with_validation_retry`` in ``llm/provider.py``) via
     ``ValidationError → ValueError → Exception``, but does NOT catch
     ``KeyboardInterrupt`` or ``SystemExit``.
     """

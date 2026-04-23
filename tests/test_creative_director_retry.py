@@ -1,8 +1,11 @@
 """
-agt_sea — Creative Director Validation Retry Unit Tests
+agt_sea — Validation Retry Unit Tests (via CDEvaluation)
 
-Unit tests for `_invoke_with_validation_retry` in
-`agt_sea.agents.creative_director`.
+Unit tests for ``invoke_with_validation_retry`` in ``agt_sea.llm.provider``,
+exercised here with ``CDEvaluation`` because that was the first and is
+still the canonical structured-output consumer. The helper is generic over
+any Pydantic model, so ``test_cd_grader.py`` exercises it against
+``GraderEvaluation`` to cover the TypeVar binding on a second schema.
 
 Run with:
     uv run pytest tests/test_creative_director_retry.py
@@ -21,7 +24,7 @@ import pytest
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from pydantic import ValidationError
 
-from agt_sea.agents.creative_director import _invoke_with_validation_retry
+from agt_sea.llm.provider import invoke_with_validation_retry
 from agt_sea.models.state import CDEvaluation
 
 
@@ -95,7 +98,7 @@ def test_validation_retry_transparent_on_first_success() -> None:
     fake = _FakeStructuredLLM(results=[valid])
     messages = _base_messages()
 
-    result = _invoke_with_validation_retry(fake, messages)
+    result = invoke_with_validation_retry(fake, messages)
 
     assert result is valid
     assert len(fake.calls) == 1
@@ -116,7 +119,7 @@ def test_validation_retry_succeeds_on_second_attempt() -> None:
     messages = _base_messages()
     original_len = len(messages)
 
-    result = _invoke_with_validation_retry(fake, messages)
+    result = invoke_with_validation_retry(fake, messages)
 
     assert result is valid
     assert len(fake.calls) == 2
@@ -149,7 +152,7 @@ def test_validation_retry_propagates_second_failure() -> None:
     fake = _FakeStructuredLLM(results=[error_one, error_two])
 
     with pytest.raises(ValidationError):
-        _invoke_with_validation_retry(fake, _base_messages())
+        invoke_with_validation_retry(fake, _base_messages())
 
     assert len(fake.calls) == 2
 

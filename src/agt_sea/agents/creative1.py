@@ -23,7 +23,11 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from agt_sea.config import get_llm_provider, get_model_name
-from agt_sea.llm.provider import get_llm, wrap_with_transport_retry
+from agt_sea.llm.provider import (
+    get_llm,
+    invoke_with_validation_retry,
+    wrap_with_transport_retry,
+)
 from agt_sea.models.state import (
     AgencyState,
     AgentOutput,
@@ -200,7 +204,7 @@ def run_creative1(state: AgencyState) -> AgencyState:
         HumanMessage(content=human_content),
     ]
 
-    result: TerritorySet = structured_llm.invoke(messages)
+    result = invoke_with_validation_retry(structured_llm, messages)
     territories = result.territories
 
     # Plain-text rendering for the history entry so AgentOutput.content

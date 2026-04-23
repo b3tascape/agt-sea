@@ -62,13 +62,17 @@ The graph is defined in `graph/workflow.py` using LangGraph's `StateGraph`. Two 
 | **Strategist** | `agents/strategist.py` | Transforms the raw client brief into a focused creative brief | Challenge, audience, insight, proposition, tone |
 | **Creative** (1.0) | `agents/creative.py` | Generates three distinct creative approaches per iteration | Concept title, core idea, execution, rationale |
 | **Creative 1** (2.0) | `agents/creative1.py` | Generates *n* distinct creative territories from the brief (default 3, configurable 1–12 via `num_territories`). Optional `territory_rejection_context` steers a regenerated batch. | Structured `list[Territory]` — each with title, core idea, why it works |
-| **Creative Director** | `agents/creative_director.py`| Evaluates creative work through a chosen philosophical lens | Structured score (0–100), strengths, weaknesses, direction |
+| **Creative 2** (2.0) | `agents/creative2.py` | Develops a selected territory into a full campaign concept. Initial path works from the territory + brief; revision path incorporates the grader's score and the CD's coaching. | Structured `CampaignConcept` — title, core idea, deliverables, why it works |
+| **Creative Director** (1.0) | `agents/creative_director.py`| Evaluates creative work through a chosen philosophical lens | Structured score (0–100), strengths, weaknesses, direction |
+| **CD Grader** (2.0) | `agents/cd_grader.py` | Scores a campaign concept out of 100 against the brief. No philosophy / provenance / taste injection — objective and repeatable by contract. Temperature `0.0`. | Structured `GraderEvaluation` — score + rationale |
+| **CD Feedback** (2.0) | `agents/cd_feedback.py` | Produces directional coaching for the next Creative 2 iteration. Reads the campaign concept and (when present) the grader's score and rationale. Does not score. | Free-text revision direction (`str`) |
+| **CD Synthesis** (2.0) | `agents/cd_synthesis.py` | Final editorial judgement — the user-facing recommendation at the end of the Standard 2.0 pipeline. Schema supports N concepts (`comparison_notes` populated when >1, `None` when 1). | Structured `CDSynthesis` — selected title, recommendation narrative, per-concept score summary, comparison notes |
 
-The Creative agent has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history.
+The Creative agent (1.0) has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history. Creative 2 (2.0) mirrors this two-path structure but incorporates the grader's score and the CD's coaching instead of a single CD evaluation.
 
-The Creative Director uses `with_structured_output(CDEvaluation)` to constrain LLM output to a validated Pydantic model.
+The Creative Director (1.0), Creative 1, Creative 2, CD Grader, and CD Synthesis all use `with_structured_output()` to constrain LLM output to a validated Pydantic model. Schema validation failures get one reprompt through the shared helper `invoke_with_validation_retry` (in `llm/provider.py`) before surfacing as a FAILED run. CD Feedback produces free-text output instead — the revision direction itself is the product, so no schema is imposed.
 
-All three agents build their system prompt via a module-level `_build_system_prompt(philosophy)` helper. When the philosophy is `NEUTRAL`, no philosophy section is injected and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded from disk and injected into a dedicated section. The Strategist additionally assembles its prompt from a reusable creative-brief template and proposition guidance via `load_template()` / `load_guidance()`.
+The seven injection-using agents (Strategist, Creative, Creative 1, Creative 2, Creative Director, CD Feedback, CD Synthesis) build their system prompts via a module-level `_build_system_prompt()` helper. Each follows the *neutral-skip* rule: when the relevant lens is `NEUTRAL`, no section is injected and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded from disk and injected into a dedicated section. Standard 2.0 agents compose three lenses (philosophy + provenance + taste); Standard 1.0 agents compose one (philosophy). The CD Grader is the exception: it is neutral by contract and takes no injection. The Strategist additionally assembles its prompt from a reusable creative-brief template and proposition guidance via `load_template()` / `load_guidance()`.
 
 
 ### Philosophies
@@ -213,7 +217,11 @@ agt_sea/
 │       │   ├── strategist.py        # Brief -> creative brief
 │       │   ├── creative.py          # Creative brief -> concepts (1.0)
 │       │   ├── creative1.py         # [2.0] Creative brief -> territories
-│       │   └── creative_director.py # Concepts -> evaluation
+│       │   ├── creative2.py         # [2.0] Selected territory -> campaign concept
+│       │   ├── creative_director.py # Concepts -> evaluation (1.0)
+│       │   ├── cd_grader.py         # [2.0] Campaign concept -> score + rationale
+│       │   ├── cd_feedback.py       # [2.0] Campaign concept (+ optional score) -> revision direction
+│       │   └── cd_synthesis.py      # [2.0] Campaign concept + history -> final editorial synthesis
 │       ├── graph/
 │       │   └── workflow.py          # LangGraph orchestration
 │       ├── llm/
@@ -234,9 +242,12 @@ agt_sea/
 │   ├── test_strategist.py               # Strategist isolation test (manual, real LLM)
 │   ├── test_creative.py                 # Strategist -> Creative test (manual, real LLM)
 │   ├── test_creative1.py                # [2.0] Strategist -> Creative 1 test (manual, real LLM)
+│   ├── test_creative2.py                # [2.0] Strategist -> Creative 1 -> Creative 2 test (manual, real LLM)
 │   ├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
 │   ├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
-│   ├── test_creative_director_retry.py  # CD validation-retry helper pytest unit tests
+│   ├── test_creative_director_retry.py  # Validation-retry helper pytest unit tests (via CDEvaluation)
+│   ├── test_cd_grader.py                # [2.0] GraderEvaluation schema + retry-helper bind pytest unit tests
+│   ├── test_cd_synthesis.py             # [2.0] CDSynthesis / ConceptScoreSummary schema pytest unit tests
 │   ├── test_llm_provider.py             # get_llm() / retry-wrapper pytest unit tests
 │   └── test_run_guard.py                # Run guard counter pytest unit tests
 ├── frontend/
@@ -362,9 +373,9 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 Splits creative into a two-stage pipeline with a territory-selection interrupt: Creative 1 generates N territories, the user picks one, Creative 2 develops it into a full campaign, and the Creative Director role fans out into Grader, Feedback, and Synthesis. Provenance and Taste join Philosophy as per-role prompt-injection lenses.
 
 - [x] State model, new enums, new agent conventions (Phase A)
-- [ ] Prompt infrastructure, temperature support, sidebar controls (Phase B)
-- [ ] Creative 1 agent + standalone Creative page tab (Phases C1 / C-FE)
-- [ ] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
+- [x] Prompt infrastructure, temperature support, sidebar controls (Phase B)
+- [x] Creative 1 agent + standalone Creative page tab (Phases C1 / C-FE)
+- [x] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
 - [ ] v2 graph with territory-selection interrupt (Phase D)
 - [ ] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
 - [ ] End-to-end testing, architecture diagram, docs sweep (Phase F)
@@ -418,6 +429,7 @@ uv run python tests/test_pipeline.py
 uv run python tests/test_strategist.py
 uv run python tests/test_creative.py
 uv run python tests/test_creative1.py
+uv run python tests/test_creative2.py
 ```
 
 ### Interactive pipeline exploration

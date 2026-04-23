@@ -5,22 +5,41 @@ A single entry point that returns a LangChain chat model for whichever
 provider is configured. All agents import from here rather than
 instantiating models directly.
 
-This module also owns the transport-level retry policy: wrap any runnable
-with wrap_with_transport_retry() to get exponential backoff on transient
-network / rate-limit / 5xx errors, using a per-provider exception allowlist.
-Callers that compose BaseChatModel-only methods (e.g.
-.with_structured_output()) should request an unwrapped model via
-get_llm(with_retry=False), apply those methods, then wrap the result
-with wrap_with_transport_retry() manually. See ADR 0012 (pending).
+This module owns the two retry layers described in ADR 0012:
+
+1. **Transport-level retries.** ``wrap_with_transport_retry()`` wraps any
+   runnable with exponential backoff on transient network / rate-limit /
+   5xx errors, using a per-provider exception allowlist. Callers that
+   compose BaseChatModel-only methods (e.g. ``.with_structured_output()``)
+   should request an unwrapped model via ``get_llm(with_retry=False)``,
+   apply those methods, then wrap the result with
+   ``wrap_with_transport_retry()`` manually.
+
+2. **Structured-output validation retry.** ``invoke_with_validation_retry()``
+   wraps a single ``.invoke()`` on a composed structured-output runnable and
+   reprompts once on ``pydantic.ValidationError``. Transport retry fires
+   during the network call; validation retry fires after a successful
+   delivery when the structured-output parser fails to rebuild the Pydantic
+   model. They are orthogonal — wrap with both when using
+   ``.with_structured_output()``.
 """
 
 from __future__ import annotations
 
+import logging
+from typing import Any, TypeVar
+
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import Runnable
+from pydantic import BaseModel, ValidationError
 
 from agt_sea.config import LLM_MAX_RETRIES, get_llm_provider, get_model_name
 from agt_sea.models.state import LLMProvider
+
+logger = logging.getLogger(__name__)
+
+_StructuredT = TypeVar("_StructuredT", bound=BaseModel)
 
 
 # ---------------------------------------------------------------------------
@@ -229,3 +248,60 @@ def get_llm(
     if not with_retry:
         return chat_model
     return wrap_with_transport_retry(chat_model, provider)
+
+
+# ---------------------------------------------------------------------------
+# Structured-output validation retry
+# ---------------------------------------------------------------------------
+
+
+def invoke_with_validation_retry(
+    structured_llm: Runnable[Any, _StructuredT],
+    messages: list[BaseMessage],
+) -> _StructuredT:
+    """Invoke a structured-output runnable and reprompt once on ValidationError.
+
+    Schema validation errors only surface *after* a successful network call,
+    when the structured-output parser rebuilds the Pydantic model from the
+    response. That makes them an application-layer concern, not a transport
+    one — transport retries (wrapped inside ``structured_llm`` at composition
+    time) fire during the network call and can't recover a malformed-but-
+    delivered response.
+
+    This helper adds a one-shot reprompt: on the first ``ValidationError`` it
+    appends a ``HumanMessage`` describing the failure and calls ``.invoke()``
+    once more. A second failure propagates to the caller so the orchestration-
+    layer safe-node wrapper can surface it as a FAILED run.
+
+    Args:
+        structured_llm: The already-composed structured-output runnable
+            (transport retry wrapped around ``.with_structured_output()``).
+        messages: The prompt messages to send on the first attempt.
+
+    Returns:
+        A validated Pydantic model of whatever type the structured runnable
+        produces (``CDEvaluation``, ``GraderEvaluation``, ``CDSynthesis``, …).
+
+    Raises:
+        pydantic.ValidationError: If both attempts fail schema validation.
+    """
+    try:
+        return structured_llm.invoke(messages)
+    except ValidationError as exc:
+        logger.warning(
+            "Structured output failed validation on first attempt, "
+            "retrying with reprompt: %s",
+            exc,
+        )
+        reprompt = messages + [
+            HumanMessage(
+                content=(
+                    "Your previous response failed schema validation:\n\n"
+                    f"{exc}\n\n"
+                    "Return a new response that conforms exactly to the "
+                    "required schema. Do not apologise or explain — "
+                    "return only the corrected structured output."
+                )
+            )
+        ]
+        return structured_llm.invoke(reprompt)
