@@ -55,6 +55,8 @@ graph LR
 
 The graph is defined in `graph/workflow.py` using LangGraph's `StateGraph`. Two conditional edges implement the approval gate and iteration limit. Routing functions are pure (return strings only). State mutations happen in dedicated finalisation nodes before `END`.
 
+The Standard 2.0 multi-stage pipeline (ADR 0014) lives alongside v1 in `graph/workflow_v2.py`. It splits Creative into a territory-generation stage (Creative 1) and a campaign-development stage (Creative 2) with a human-in-the-loop interrupt between them: after Creative 1 generates territories, LangGraph's `interrupt()` primitive pauses the graph until the user selects one (or asks for a rerun with optional steering). The Creative Director role fans out into CD Grader, CD Feedback, and CD Synthesis. The v2 graph requires a checkpointer (a module-scope `MemorySaver` singleton) so the pause state survives across calls, and every `invoke()` / `stream()` call must carry `config={"configurable": {"thread_id": "<id>"}}`. Resume is `Command(resume={"action": ..., ...})` on a second call with the same thread. Boundary rehydration works identically to v1 — LangGraph returns a plain dict and call sites rehydrate with `AgencyState.model_validate(...)`. A Mermaid diagram for the v2 flow will land in `docs/architecture_v2.md` in Phase F.
+
 ### Agents
 
 | Agent | File | Role | Output |
@@ -223,7 +225,8 @@ agt_sea/
 │       │   ├── cd_feedback.py       # [2.0] Campaign concept (+ optional score) -> revision direction
 │       │   └── cd_synthesis.py      # [2.0] Campaign concept + history -> final editorial synthesis
 │       ├── graph/
-│       │   └── workflow.py          # LangGraph orchestration
+│       │   ├── workflow.py          # LangGraph orchestration (Standard 1.0)
+│       │   └── workflow_v2.py       # [2.0] Multi-stage pipeline with territory-selection interrupt
 │       ├── llm/
 │       │   └── provider.py          # LLM provider abstraction
 │       ├── models/
@@ -244,6 +247,7 @@ agt_sea/
 │   ├── test_creative1.py                # [2.0] Strategist -> Creative 1 test (manual, real LLM)
 │   ├── test_creative2.py                # [2.0] Strategist -> Creative 1 -> Creative 2 test (manual, real LLM)
 │   ├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
+│   ├── test_pipeline_v2.py              # [2.0] Full Standard 2.0 pipeline test (manual, real LLM) — pauses at interrupt, auto-selects territory[0]
 │   ├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
 │   ├── test_creative_director_retry.py  # Validation-retry helper pytest unit tests (via CDEvaluation)
 │   ├── test_cd_grader.py                # [2.0] GraderEvaluation schema + retry-helper bind pytest unit tests
@@ -376,7 +380,7 @@ Splits creative into a two-stage pipeline with a territory-selection interrupt: 
 - [x] Prompt infrastructure, temperature support, sidebar controls (Phase B)
 - [x] Creative 1 agent + standalone Creative page tab (Phases C1 / C-FE)
 - [x] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
-- [ ] v2 graph with territory-selection interrupt (Phase D)
+- [x] v2 graph with territory-selection interrupt (Phase D)
 - [ ] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
 - [ ] End-to-end testing, architecture diagram, docs sweep (Phase F)
 

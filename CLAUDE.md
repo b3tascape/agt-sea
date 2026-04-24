@@ -16,6 +16,7 @@ uv run python tests/test_strategist.py     # Strategist only
 uv run python tests/test_creative.py       # Strategist + Creative
 uv run python tests/test_creative1.py      # Strategist + Creative 1 (Standard 2.0)
 uv run python tests/test_creative2.py      # Strategist + Creative 1 + Creative 2 (Standard 2.0)
+uv run python tests/test_pipeline_v2.py    # Full Standard 2.0 pipeline — pauses at interrupt, auto-selects territory[0]
 uv run ruff check .                        # Lint
 uv run pytest tests/                       # Unit tests (excludes manual integration scripts)
 ```
@@ -34,7 +35,9 @@ uv run pytest tests/                       # Unit tests (excludes manual integra
 src/agt_sea/
 ├── config.py                # Settings, _get_secret() helper, st.secrets bridge, DEFAULT_MODELS + AVAILABLE_MODELS
 ├── agents/                  # One file per agent (strategist, creative, creative_director, creative1, creative2, cd_grader, cd_feedback, cd_synthesis)
-├── graph/workflow.py        # LangGraph graph definition, routing, finalisation nodes
+├── graph/
+│   ├── workflow.py          # Standard 1.0 LangGraph graph (strategist → creative → CD loop)
+│   └── workflow_v2.py       # [2.0] Standard 2.0 graph — multi-stage pipeline with territory-selection interrupt
 ├── llm/provider.py          # Provider-agnostic LLM factory (get_llm())
 ├── models/state.py          # Pydantic models (AgencyState, CDEvaluation, AgentOutput) and enums
 └── prompts/
@@ -68,6 +71,7 @@ tests/
 ├── test_creative1.py                # [2.0] Strategist → Creative 1 test (manual, real LLM)
 ├── test_creative2.py                # [2.0] Strategist → Creative 1 → Creative 2 test (manual, real LLM)
 ├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
+├── test_pipeline_v2.py              # [2.0] Full Standard 2.0 pipeline test — pauses at interrupt, resumes with territory[0] (manual, real LLM)
 ├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
 ├── test_creative_director_retry.py  # Validation-retry helper pytest unit tests (via CDEvaluation)
 ├── test_cd_grader.py                # [2.0] GraderEvaluation schema + retry-helper bind pytest unit tests
@@ -110,6 +114,12 @@ docs/
 - **State organisation — don't segregate by workflow version.** `AgencyState` is one object shared by both Standard 1.0 and Standard 2.0. When adding new fields, extend the existing functional groups (`Input`, `LLM overrides`, `Agent outputs`, `Iteration tracking`, `History`, `Workflow`) rather than trailing a "v2" section. A subtle `# [2.0] …` marker inside a group is fine to cluster related fields; a top-level version split is not.
 - **Safe-node wrapper** — every agent node is wrapped with `_safe_node()` at graph-build time in `graph/workflow.py`. New agents inherit failure handling by construction — do not add `try`/`except` inside agent functions. The error-string format is owned by `format_node_error(fn_name, exc)` in the same module; standalone pages that call agents directly outside the graph (e.g. `frontend/pages/strategy.py`, `frontend/pages/creative.py`) must import and use it to construct `state.error` so the display contract stays consistent. See ADR 0012.
 - **Failure contract** — `WorkflowStatus.FAILED` and `state.error` are the contract between the graph and the frontend. On failure, routing diverts to a `finalise_failed` node → `END`. Frontend pages check `state.status == WorkflowStatus.FAILED` after rehydration and render the `error_state` component instead of agent output. Routing functions begin with a uniform `if state.error is not None: return "failed"` guard — the mutation already happened in `_safe_node`.
+- **Standard 2.0 graph (ADR 0014)** — `graph/workflow_v2.py` defines the multi-stage v2 pipeline: `strategist → creative1 → interrupt_territory_selection → creative2 → cd_grader → (cd_feedback loop | cd_synthesis) → finalise_*`. v1's `graph/workflow.py` is untouched. Both compile independently; the workflow page picks one per tab. The shared pieces with v1 are `format_node_error` (imported from v1) and the `_check_failed` routing pattern. **v2 has its own `_safe_node`** because v1's naive `except Exception` would swallow `GraphInterrupt` (which is an `Exception` subclass) and break the pause; the v2 wrapper re-raises `GraphBubbleUp` so LangGraph's control-flow signals propagate.
+- **Checkpointer is a module-scope singleton.** `workflow_v2.py` instantiates `_CHECKPOINTER = MemorySaver()` at module import time and passes that same instance to every `StateGraph.compile(checkpointer=...)` call. This is deliberate: Streamlit re-runs the page script on every interaction, which means `build_graph_v2()` is called repeatedly. A per-call `MemorySaver()` would erase in-flight interrupts. A module-scope singleton survives within the Python process but does not survive a restart / redeploy — persistent checkpointing (SQLite/Postgres) is the upgrade path.
+- **Interrupt node is idempotent.** LangGraph resumes an interrupted node by **re-executing it from the top** — everything above `interrupt()` runs again on every resume. `_interrupt_territory_selection` therefore only reads state and sets fields derived from the resume value (`selected_territory`, `territory_rejection_context`). No history appends, no counters, no LLM calls, no mutations before `interrupt()` (those aren't captured in the paused checkpoint anyway — LangGraph snapshots at the end of the *previous* node, not at the start of the interrupted one). Consequence: there is no `WorkflowStatus` value that mirrors "paused" — the authoritative pause signal is LangGraph's own (`graph.get_state(config).interrupts` / the `__interrupt__` event from `stream()`).
+- **Thread config is mandatory on v2.** Every `agency_graph_v2.invoke(...)` / `.stream(...)` call must include `config={"configurable": {"thread_id": "<id>"}}`. The same `thread_id` links the initial run to the resume. Callers own the ID (Streamlit stores it in `st.session_state`, tests generate a fresh UUID per run).
+- **Resuming a v2 run.** Pass `Command(resume=<value>)` — from `langgraph.types` — as the *input* to a subsequent `stream()` / `invoke()` call with the same thread config. The resume value is whatever `interrupt()` returns inside the node. The v2 interrupt node's contract accepts `{"action": "select", "index": int}` or `{"action": "rerun", "rejection_context": str | None}`. See `frontend/pages/workflow.py` (Phase E) and `tests/test_pipeline_v2.py` for the canonical pattern.
+- **Boundary rehydration on v2 is identical to v1 — Pydantic in, dict out.** `graph.invoke(state, config=cfg)` and `graph.stream(state, config=cfg)` return plain dicts exactly like v1. After an interrupt, read the paused state via `graph.get_state(cfg).values` (also a plain dict) and rehydrate with `AgencyState.model_validate(values)` before attribute access. The interrupt pattern does **not** change this rule. `config` is required only on the LangGraph calls themselves — rehydration is unchanged.
 
 ## Agent Conventions
 
