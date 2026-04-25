@@ -2,7 +2,7 @@
 
 An AI-powered creative marketing tool for brands and agencies offering a number of services designed to improve creative output. 
 
-The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `c1_territory` (default) for Standard 2.0 territory generation via the Creative 1 agent, and `c0_original` for the original single-shot creative agent.
+The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `c1_territory` (default) for Standard 2.0 territory generation via the Creative 1 agent, and `c0_original` for the original single-shot creative agent. The Workflow page mirrors that structure: `Standard 2.0` (default) runs the multi-stage v2 pipeline with a human-in-the-loop territory selection interrupt; `Standard 1.0` runs the original v1 pipeline unchanged.
 
 A Strategist writes the creative brief, a Creative generates ideas, and a Creative Director evaluates the work through a configurable creative philosophy. The system iterates until the work meets the quality threshold or the iteration budget is exhausted.
 
@@ -259,7 +259,7 @@ agt_sea/
 │   ├── pages/
 │   │   ├── strategy.py              # Standalone strategist
 │   │   ├── creative.py              # Standalone creative
-│   │   ├── workflow.py              # Full pipeline (tabbed)
+│   │   ├── workflow.py              # Full pipeline — tabbed (Standard 2.0 default, Standard 1.0)
 │   │   ├── tools.py                 # Tools (holding message)
 │   │   ├── marketing.py             # Placeholder (hidden)
 │   │   ├── production.py            # Placeholder (hidden)
@@ -274,6 +274,7 @@ agt_sea/
 │   │   ├── error_state.py           # Failure UI (renders state.error on FAILED runs)
 │   │   ├── run_guard.py             # Per-session run counter gate (ADR 0013)
 │   │   ├── territory_cards.py       # [2.0] Renders list[Territory] as modular bordered cards
+│   │   ├── synthesis_output.py      # [2.0] Renders CDSynthesis + CampaignConcept for the v2 terminal UI
 │   │   └── labels.py                # Shared enum → display-label mappings
 │   └── themes/
 │       └── b3ta.css                 # Theme CSS
@@ -381,7 +382,7 @@ Splits creative into a two-stage pipeline with a territory-selection interrupt: 
 - [x] Creative 1 agent + standalone Creative page tab (Phases C1 / C-FE)
 - [x] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
 - [x] v2 graph with territory-selection interrupt (Phase D)
-- [ ] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
+- [x] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
 - [ ] End-to-end testing, architecture diagram, docs sweep (Phase F)
 
 **Future Modules**

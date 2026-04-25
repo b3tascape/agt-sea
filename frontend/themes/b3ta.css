@@ -250,14 +250,42 @@ label[data-testid="stWidgetLabel"] * {
     transition: all 0.15s ease !important;
 }
 
+/* Hover uses translucent white over the chartreuse page background —
+   matches the sidebar selectbox tint and gives a softer "lighter
+   chartreuse" feel rather than a flat-colour swap. */
 .stButton > button:hover {
-    background-color: var(--dark-grey) !important;
-    color: var(--chartreuse) !important;
+    background-color: rgba(255, 255, 255, 0.35) !important;
+    color: var(--dark) !important;
+    border-color: var(--dark) !important;
 }
 
 .stButton > button:active {
     background-color: var(--dark) !important;
+    color: var(--chartreuse) !important;
 }
+
+/* --- Buttons inside columns (territory selection, etc.) ---
+   Equalise heights across the row + center the label horizontally and
+   vertically. white-space: normal allows long territory titles to
+   wrap inside the button rather than overflowing. word-break covers
+   the case where a single token would overflow on narrow columns. */
+[data-testid="stColumn"] .stButton > button {
+    height: 80px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.3 !important;
+}
+
+[data-testid="stColumn"] .stButton > button > div,
+[data-testid="stColumn"] .stButton > button p {
+    width: 100% !important;
+    text-align: center !important;
+}
+
 
 /* --- Select box --- */
 .stSelectbox > div > div {

@@ -51,20 +51,36 @@ def render_territory_cards(territories: list[Territory]) -> None:
 def _render_card(territory: Territory) -> None:
     """Render a single territory inside a bordered container.
 
-    Title uses markdown h4 — styled by the theme's `.stApp h4` rule
-    (Cormorant Garamond). Field labels use a raw-HTML `territory-label`
-    class to opt out of the global `.stColumn .stMarkdown strong` rule
-    (which forces Montserrat caps on bold text inside columns).
+    Title uses markdown h4 — styled by the theme's ``.stApp h4`` rule
+    (Cormorant Garamond). The body lives in ``render_territory_body()``
+    so the same field rendering can be reused (e.g. by the selected-
+    territory expander on the Workflow v2 tab).
     """
     with st.container(border=True):
-        st.markdown(f"#### {territory.title}")
-        st.markdown(
-            "<p class='territory-label'>CORE IDEA</p>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(territory.core_idea)
-        st.markdown(
-            "<p class='territory-label'>WHY IT WORKS</p>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(territory.why_it_works)
+        render_territory_body(territory)
+
+
+def render_territory_body(territory: Territory) -> None:
+    """Render a Territory's three fields without any card boundary.
+
+    Lifted out of ``_render_card`` so callers that have their own
+    container (e.g. an expander) can render the same content without
+    nesting bordered containers. Field labels use a raw-HTML
+    ``territory-label`` class to opt out of the global
+    ``.stColumn .stMarkdown strong`` rule, which otherwise forces
+    Montserrat caps on bold text inside columns.
+
+    Args:
+        territory: The Territory whose fields to render.
+    """
+    st.markdown(f"#### {territory.title}")
+    st.markdown(
+        "<p class='territory-label'>CORE IDEA</p>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(territory.core_idea)
+    st.markdown(
+        "<p class='territory-label'>WHY IT WORKS</p>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(territory.why_it_works)
