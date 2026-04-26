@@ -14,6 +14,90 @@ Built with LangGraph, LangChain, and Streamlit.
 
 ## How It Works
 
+Two workflows ship side by side. **Standard 2.0** is the default — a multi-stage pipeline with a human-in-the-loop territory selection (ADR 0014). **Standard 1.0** is the original single-shot creative loop, preserved unchanged so the two can be compared on the same brief.
+
+### Standard 2.0 — Multi-stage with territory interrupt
+
+```mermaid
+graph TD
+    A(["`**input:**
+    Client brief supplied`"]):::input --> B["`**strategist**
+    Creative brief written`"]:::agent
+
+    SP(["`**strat_philosophy**`"]):::philosophy --> B
+
+    B --> C1["`**creative 1**
+    Core idea generation
+    1–2 sentence articulations`"]:::agent
+
+    CP1(["`**creative_philosophy
+    provenance · taste**
+    _temperature_`"]):::philosophy --> C1
+
+    C1 --> T1(["`territory 1`"]):::territory
+    C1 --> T2(["`territory 2`"]):::territory
+    C1 --> T3(["`territory 3`"]):::territory
+
+    T1 --> H{"`**user select
+    preference**`"}:::human
+    T2 --> H
+    T3 --> H
+
+    H -->|"`rerun with
+    optional context`"| C1
+
+    H -->|"`preference
+    selected`"| C2["`**creative 2**
+    Campaign generation`"]:::agent
+
+    CP2(["`**creative_philosophy
+    provenance · taste**
+    _temperature_`"]):::philosophy --> C2
+
+    C2 --> GR["`**CD grader**
+    Score + rationale
+    _temp = 0_`"]:::grader
+
+    GR --> E{"`**80% hit?**`"}:::decision
+
+    E -->|yes| SYN["`**creative director**
+    Synthesise, judge,
+    recommend`"]:::agent
+
+    E -->|no| F{"`**max iter?**`"}:::decision
+
+    F -->|no| FB["`**CD feedback**
+    Revision direction`"]:::agent
+
+    FB --> C2
+
+    F -->|"`yes: output
+    best scoring`"| SYN
+
+    CPCD(["`**creative_philosophy
+    provenance · taste**
+    _temperature_`"]):::philosophy --> SYN
+
+    SYN --> G(["`**output:**
+    Proposed creative
+    direction`"]):::output
+
+    classDef input fill:#d3d3d3,color:#000,stroke:#999
+    classDef agent fill:#2196F3,color:#fff,stroke:#1976D2
+    classDef decision fill:#F5C542,color:#000,stroke:#D4A017
+    classDef output fill:#d3d3d3,color:#000,stroke:#999
+    classDef philosophy fill:#71F7B7,color:#000,stroke:#4dd0e1
+    classDef territory fill:#E8DEF8,color:#000,stroke:#7F67BE
+    classDef human fill:#FF9800,color:#fff,stroke:#F57C00
+    classDef grader fill:#B0BEC5,color:#000,stroke:#78909C
+```
+
+The v2 graph lives in [`graph/workflow_v2.py`](src/agt_sea/graph/workflow_v2.py); the same diagram is also kept in [`docs/architecture_v2.md`](docs/architecture_v2.md). It splits Creative into a territory-generation stage (Creative 1) and a campaign-development stage (Creative 2) with a human-in-the-loop interrupt between them: after Creative 1 generates territories, LangGraph's `interrupt()` primitive pauses the graph until the user selects one (or asks for a rerun with optional steering). The Creative Director role fans out into CD Grader (objective scoring at temp=0), CD Feedback (revision coaching), and CD Synthesis (final editorial recommendation).
+
+The v2 graph requires a checkpointer (a module-scope `MemorySaver` singleton) so the pause state survives across calls, and every `invoke()` / `stream()` call must carry `config={"configurable": {"thread_id": "<id>"}}`. Resume is `Command(resume={"action": ..., ...})` on a second call with the same thread — `{"action": "select", "index": int}` to develop a territory or `{"action": "rerun", "rejection_context": str | None}` to regenerate. Boundary rehydration works identically to v1 — LangGraph returns a plain dict and call sites rehydrate with `AgencyState.model_validate(...)`.
+
+### Standard 1.0 — Single-shot creative loop
+
 ```mermaid
 graph LR
     A(["`**input:**
@@ -53,9 +137,7 @@ graph LR
     classDef philosophy fill:#80deea,color:#000,stroke:#4dd0e1
 ```
 
-The graph is defined in `graph/workflow.py` using LangGraph's `StateGraph`. Two conditional edges implement the approval gate and iteration limit. Routing functions are pure (return strings only). State mutations happen in dedicated finalisation nodes before `END`.
-
-The Standard 2.0 multi-stage pipeline (ADR 0014) lives alongside v1 in `graph/workflow_v2.py`. It splits Creative into a territory-generation stage (Creative 1) and a campaign-development stage (Creative 2) with a human-in-the-loop interrupt between them: after Creative 1 generates territories, LangGraph's `interrupt()` primitive pauses the graph until the user selects one (or asks for a rerun with optional steering). The Creative Director role fans out into CD Grader, CD Feedback, and CD Synthesis. The v2 graph requires a checkpointer (a module-scope `MemorySaver` singleton) so the pause state survives across calls, and every `invoke()` / `stream()` call must carry `config={"configurable": {"thread_id": "<id>"}}`. Resume is `Command(resume={"action": ..., ...})` on a second call with the same thread. Boundary rehydration works identically to v1 — LangGraph returns a plain dict and call sites rehydrate with `AgencyState.model_validate(...)`. A Mermaid diagram for the v2 flow will land in `docs/architecture_v2.md` in Phase F.
+The v1 graph in [`graph/workflow.py`](src/agt_sea/graph/workflow.py) uses two conditional edges to implement the approval gate and iteration limit. Routing functions are pure (return strings only). State mutations happen in dedicated finalisation nodes before `END`. Both graphs share the same patterns — `_safe_node` wrapping for failure capture, the `WorkflowStatus.FAILED` contract with `state.error` for the frontend.
 
 ### Agents
 
@@ -131,11 +213,13 @@ Each agent runs through a configurable philosophical lens, set independently in 
 
 ### LLM Provider Support
 
-The framework supports provider switching via configuration — change the `LLM_PROVIDER` environment variable to swap between:
+The framework supports provider switching via configuration — change the `LLM_PROVIDER` environment variable, or pick a provider in the sidebar at runtime, to swap between:
 
 - **Anthropic** (Claude) — default
 - **Google** (Gemini)
 - **OpenAI** (GPT)
+
+Per-provider model selection is exposed in the sidebar from `config.AVAILABLE_MODELS`. Per-agent temperature (Standard 2.0) is exposed in the sidebar's "STANDARD 2.0 CONTROLS" expander.
 
 ---
 
@@ -210,7 +294,8 @@ The set of models selectable in the sidebar lives in `config.AVAILABLE_MODELS` (
 ```
 agt_sea/
 ├── docs/
-│   ├── architecture.md              # Mermaid graph diagram
+│   ├── architecture.md              # Standard 1.0 mermaid graph diagram
+│   ├── architecture_v2.md           # [2.0] Standard 2.0 mermaid graph diagram
 │   └── adr/                         # Architecture Decision Records
 ├── src/
 │   └── agt_sea/
@@ -311,7 +396,7 @@ agt_sea/
 - Prompt templates & guidance: plain text files in `prompts/templates/` and `prompts/guidance/`, loaded by `load_template()` / `load_guidance()` and composed inside agent `_build_system_prompt()` helpers
 - Agent system prompts: assembled inline in agent files via `_build_system_prompt()` helpers that compose templates, guidance, and philosophy text
 - Sample briefs: `briefs/` directory
-- Architecture docs: `docs/architecture.md` (Mermaid)
+- Architecture docs: `docs/architecture.md` (Standard 1.0) and `docs/architecture_v2.md` (Standard 2.0) — both raw Mermaid
 - Decision records: `docs/adr/` (numbered markdown files + README index)
 
 ## Key Design Principles
@@ -350,14 +435,15 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 ## Build Sequence
 
 1. **MVP — Creative Pipeline** ← COMPLETE (deployed to Streamlit Cloud)
-2. **Standalone Strategic Agents (e.g. creative brief writer**)** ← COMPLETE (standalone, calls `run_strategist()` directly)
+2. **Standalone Strategic Agents (e.g. creative brief writer)** ← COMPLETE (standalone, calls `run_strategist()` directly)
 3. **Standalone Creative Agents (discipline-specific specialists, different creative types)** ← COMPLETE (standalone, calls `run_creative()` directly)
 4. **Error handling & graceful degradation (retries, failure contract)** ← COMPLETE (Phase 6.1 / ADRs 0012 & 0013)
-5. RAG-enhanced creative philosophies
-6. Human-in-the-loop approval points
+5. **Multi-stage creative pipeline with territory selection (Standard 2.0)** ← COMPLETE (ADR 0014 — Phases A–F)
+6. RAG-enhanced creative philosophies / provenance / taste
 7. Structured logging & tracing (LangSmith)
-8. Brand Strategy Module (branding / brand positioning)
-9. Provider comparison tooling
+8. Parallel Creative 2 variant (3× campaign development from N selected territories)
+9. Brand Strategy Module (branding / brand positioning)
+10. Provider comparison tooling
 
 ---
 
@@ -367,13 +453,13 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 
 ### Roadmap
 
-**Phase 6 — Refinement (current)**
+**Phase 6 — Refinement**
 - [ ] Frontend refinement and UX polish
-- [x] Error handling and graceful degradation
-- [ ] Human-in-the-loop approval points (LangGraph interrupt/resume)
+- [x] Error handling and graceful degradation (ADR 0012 / 0013)
+- [x] Human-in-the-loop approval points (LangGraph interrupt/resume — landed via ADR 0014)
 - [ ] Structured logging and tracing (LangSmith)
 
-**Standard 2.0 — Multi-Stage Creative Pipeline ([ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md))**
+**Standard 2.0 — Multi-Stage Creative Pipeline ([ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md))** — COMPLETE
 
 Splits creative into a two-stage pipeline with a territory-selection interrupt: Creative 1 generates N territories, the user picks one, Creative 2 develops it into a full campaign, and the Creative Director role fans out into Grader, Feedback, and Synthesis. Provenance and Taste join Philosophy as per-role prompt-injection lenses.
 
@@ -383,7 +469,7 @@ Splits creative into a two-stage pipeline with a territory-selection interrupt: 
 - [x] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
 - [x] v2 graph with territory-selection interrupt (Phase D)
 - [x] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
-- [ ] End-to-end testing, architecture diagram, docs sweep (Phase F)
+- [x] End-to-end testing, architecture diagram, docs sweep (Phase F)
 
 **Future Modules**
 - [ ] Tools - a suite of creative tools (page visible with holding message)
@@ -425,16 +511,23 @@ uv run streamlit run frontend/app.py
 ### Run full pipeline test (makes real LLM calls)
 
 ```bash
-uv run python tests/test_pipeline.py
+uv run python tests/test_pipeline.py        # Standard 1.0 — strategist → creative → CD loop
+uv run python tests/test_pipeline_v2.py     # Standard 2.0 — pauses at interrupt, auto-selects territory[0]
 ```
 
-### Run individual agent tests
+### Run individual agent tests (real LLM calls)
 
 ```bash
 uv run python tests/test_strategist.py
 uv run python tests/test_creative.py
 uv run python tests/test_creative1.py
 uv run python tests/test_creative2.py
+```
+
+### Run the unit test suite (no LLM calls)
+
+```bash
+uv run pytest tests/                         # Pytest config in pyproject.toml ignores the manual integration scripts
 ```
 
 ### Interactive pipeline exploration

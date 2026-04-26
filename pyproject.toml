@@ -26,3 +26,18 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# Manual integration scripts (real LLM calls) live alongside unit tests but
+# import sibling helpers as scripts, so pytest cannot collect them. Run them
+# directly with `uv run python tests/test_<name>.py`.
+testpaths = ["tests"]
+norecursedirs = [".archive"]
+addopts = [
+    "--ignore=tests/test_strategist.py",
+    "--ignore=tests/test_creative.py",
+    "--ignore=tests/test_creative1.py",
+    "--ignore=tests/test_creative2.py",
+    "--ignore=tests/test_pipeline.py",
+    "--ignore=tests/test_pipeline_v2.py",
+]

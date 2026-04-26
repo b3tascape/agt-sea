@@ -104,6 +104,8 @@ docs/
 - `config.py` uses `_get_secret()` which checks os.environ first, then st.secrets (for Streamlit Cloud)
 - API keys are bridged from st.secrets -> os.environ at module load so LangChain providers can find them
 - `get_llm()` accepts optional `provider`, `model`, and `temperature` parameters for frontend sidebar overrides. `temperature` is `float | None` — when `None` (the default) the argument is omitted from the provider chat-model constructor and each provider's server-side default applies; when set it is passed through to `ChatAnthropic` / `ChatGoogleGenerativeAI` / `ChatOpenAI`. `temperature` is orthogonal to `with_retry` (temperature is fixed at construction, retry wrapping happens afterwards). Standard 1.0 agents (Strategist / Creative / CD) pass `temperature=0.7` explicitly to preserve their prior behaviour; Standard 2.0 agents read the appropriate per-agent temperature from `AgencyState`.
+- **Temperature resolution idiom (every new agent).** Temperature lives on `AgencyState` per-agent, not as an `_AGENT_TEMPERATURE` constant. New agents read it as `state.<agent>_temperature` and pass through to `get_llm(temperature=...)`. The grader is the existence proof that even hardcoded values (0.0 for repeatable scoring) belong on state — recorded run metadata then matches the actual call.
+- **Neutral-skip pattern (every prompt-injection lens).** When a lens enum value is `NEUTRAL`, the corresponding `load_*()` is skipped and the prompt section stays empty — the prompt reads as if the feature wasn't there at all. Applies uniformly to philosophy, provenance, and taste. Any future injection category must follow the same convention.
 - Selectable model lists for the sidebar live in `config.AVAILABLE_MODELS` (one list per provider). The sidebar imports from there — do not redefine model lists in `frontend/components/sidebar.py`. Any provider's `DEFAULT_MODELS` entry must appear in its `AVAILABLE_MODELS` list or the sidebar default falls back to index 0.
 - Three philosophy fields live on `AgencyState`: `strategic_philosophy` (used by the Strategist), `creative_philosophy` (used by the Creative agent), and `cd_philosophy` (used by the Creative Director). All three default to `NEUTRAL`. The sidebar writes these to `st.session_state.strategic_philosophy`, `st.session_state.creative_philosophy`, and `st.session_state.cd_philosophy`; every page that builds an `AgencyState` must pass all three through.
 - **Standard 2.0 data model (ADR 0014)** — the multi-stage pipeline adds supporting models alongside `CDEvaluation` / `AgentOutput` in `models/state.py`: `Territory`, `CampaignDeliverable`, `CampaignConcept`, `GraderEvaluation`, `ConceptScoreSummary`, `CDSynthesis`. Two new prompt-injection enums alongside `CreativePhilosophy` / `StrategicPhilosophy`: `Provenance` (`NEUTRAL` + `NORTHERN_WORKING_CLASS`, `METROPOLITAN_ACADEMIC`, `DIY_SUBCULTURE`) and `Taste` (`NEUTRAL` + `UNDERGROUND_REFERENTIAL`, `AVANT_GARDE`, `POP_MAXIMALIST`, `CRAFT_TRADITIONALIST`). Prompt content for both lives as one `.txt` file per non-NEUTRAL enum value in `prompts/provenance/` and `prompts/taste/`, loaded via `load_provenance()` / `load_taste()` in `prompts/loader.py`. Same neutral-skip convention as the philosophy wrappers: callers check for NEUTRAL and skip the load. The v1 `creative_director.py` and v1 `workflow.py` are untouched; v2 agents and graph live in separate files.
@@ -121,6 +123,44 @@ docs/
 - **Thread config is mandatory on v2.** Every `agency_graph_v2.invoke(...)` / `.stream(...)` call must include `config={"configurable": {"thread_id": "<id>"}}`. The same `thread_id` links the initial run to the resume. Callers own the ID (Streamlit stores it in `st.session_state`, tests generate a fresh UUID per run).
 - **Resuming a v2 run.** Pass `Command(resume=<value>)` — from `langgraph.types` — as the *input* to a subsequent `stream()` / `invoke()` call with the same thread config. The resume value is whatever `interrupt()` returns inside the node. The v2 interrupt node's contract accepts `{"action": "select", "index": int}` or `{"action": "rerun", "rejection_context": str | None}`. See `frontend/pages/workflow.py` (Phase E) and `tests/test_pipeline_v2.py` for the canonical pattern.
 - **Boundary rehydration on v2 is identical to v1 — Pydantic in, dict out.** `graph.invoke(state, config=cfg)` and `graph.stream(state, config=cfg)` return plain dicts exactly like v1. After an interrupt, read the paused state via `graph.get_state(cfg).values` (also a plain dict) and rehydrate with `AgencyState.model_validate(values)` before attribute access. The interrupt pattern does **not** change this rule. `config` is required only on the LangGraph calls themselves — rehydration is unchanged.
+
+## V2 Workflow Conventions
+
+The Standard 2.0 pipeline is a multi-stage workflow with one human-in-the-loop interrupt and a fan-out CD role. Most rules already exist above — this section collects the v2-specific patterns in one place so they read end-to-end.
+
+**Agent signatures (Standard 2.0).** Same shape as Standard 1.0 (`def run_<agent>(state: AgencyState) -> AgencyState`), but each agent's `_build_system_prompt()` helper accepts the relevant lenses:
+- Creative 1: `_build_system_prompt(philosophy, provenance, taste, num_territories)` — count interpolated, never hardcoded.
+- Creative 2: `_build_system_prompt(...)` + `_build_revision_prompt(...)` — two prompt paths gated on `state.grader_evaluation` + `state.cd_feedback_direction`.
+- CD Grader: `_build_system_prompt()` (no parameters) — neutral by contract; never inject philosophy/provenance/taste.
+- CD Feedback: `_build_system_prompt(philosophy, provenance, taste)` + `_build_human_message(...)` — free-text output.
+- CD Synthesis: `_build_system_prompt(philosophy, provenance, taste)` — structured `CDSynthesis`.
+
+**Interrupt / resume pattern.** Pauses at `interrupt_territory_selection`. Resume value contract is `{"action": "select", "index": int}` to develop a territory or `{"action": "rerun", "rejection_context": str | None}` to regenerate. Pass `Command(resume=<value>)` from `langgraph.types` as the input to the next `stream()` / `invoke()` call on the same `thread_id`. The interrupt node is **idempotent** — re-executes from the top on every resume, so do not write history, bump counters, or call LLMs inside it.
+
+**Checkpointer.** Module-scope `_CHECKPOINTER = MemorySaver()` in `workflow_v2.py`. Every `build_graph_v2()` call shares the same instance, so Streamlit's per-interaction script reruns don't drop in-flight interrupts. `MemorySaver` does not survive a process restart — persistent checkpointing (SQLite/Postgres) is the upgrade path.
+
+**Thread config.** Mandatory on every `agency_graph_v2.invoke(...)` / `.stream(...)` / `.get_state(...)` call. Same `thread_id` links the initial run to every resume.
+
+**Per-role vs per-agent injection scoping.** Two different scopings on `AgencyState`:
+- **Per-role (provenance, taste):** scoped to the *creative role* — `creative1_*`, `creative2_*`, `cd_*` (CD pair shared by Feedback and Synthesis).
+- **Per-agent (temperature):** scoped to each *agent* individually — `creative1_temperature`, `creative2_temperature`, `cd_feedback_temperature`, `cd_synthesis_temperature`, `grader_temperature`.
+
+Don't conflate them. Provenance/taste are creative-identity lenses (a CD has one identity for both its feedback and synthesis voice); temperature is a per-call generation knob (Feedback wants creative latitude, Synthesis wants confidence, both differ from each other).
+
+**Territory data model.** `Territory` is an atomic, modular block (`title`, `core_idea`, `why_it_works` — no execution detail). `list[Territory]` lives on state. `selected_territory: Territory | None` is the user's pick. Territory count `num_territories` is bounded `1–12` on state and is *not* sidebar-exposed — it lives on the Creative page tab and the workflow page uses the default. Territories are interchangeable and parallelisable by design (the future N× Creative 2 variant requires no state rearchitect).
+
+**Campaign concept structure.** `CampaignConcept` (`title`, `core_idea`, `deliverables: list[CampaignDeliverable]`, `why_it_works`) is Creative 2's structured output. Each `CampaignDeliverable` is `name` + `explanation`. Always produced via `with_structured_output()` + `invoke_with_validation_retry`.
+
+**CD role split — campaign-scoped, not territory-scoped.** All three CD agents (Grader, Feedback, Synthesis) operate on `state.campaign_concept`. Territories are handled by the human at the interrupt — no CD agent evaluates or coaches on territories. Their separation:
+- Grader = *measurement* (objective score, temp 0.0, no injection, lean schema).
+- Feedback = *coaching* (free-text revision direction, temp configurable, full injection, fires only on the rejection-with-budget path).
+- Synthesis = *recommendation* (structured `CDSynthesis`, temp configurable, full injection, fires once before END on both approved and exhausted paths).
+
+**Synthesis as the user-facing voice.** CD Synthesis is the output the user reads — written as confident recommendation, not review. `CDSynthesis.comparison_notes` stays `None` when only one concept is present (the simplified v2 graph), populated when multiple are (the future parallel variant).
+
+**Failure path is identical to v1.** `WorkflowStatus.FAILED` and `state.error`, `_safe_node` wrapper at graph-build time, `_check_failed` routing guard at the top of every router, `finalise_failed → END`. The only v2 deviation is that `_safe_node` re-raises `GraphBubbleUp` so `interrupt()` works.
+
+**Run metadata for reproducibility.** Per-agent temperature values live on `AgencyState` (rather than as in-agent constants) specifically so the `AgentOutput` history records the value that was actually used for each call. When adding a future agent with non-default temperature, follow the same pattern.
 
 ## Agent Conventions
 
@@ -145,6 +185,7 @@ docs/
 ## Workflow Rules
 
 - Run tests after making changes to agents or graph logic
+- `uv run pytest tests/` runs unit tests only — `pyproject.toml`'s `[tool.pytest.ini_options]` block ignores the manual real-LLM integration scripts (`test_strategist`, `test_creative`, `test_creative1`, `test_creative2`, `test_pipeline`, `test_pipeline_v2`). Run those directly with `uv run python tests/test_<name>.py` when you need a real-LLM check
 - Run `ruff check .` before committing
 - Commit messages: imperative mood, conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
 - ADRs are append-only — new decisions get new numbered files, never edit old ones. The one exception is updating the `Status:` line of an older ADR to flag that it has been superseded or refined (see ADR 0006 → 0007, ADR 0003 → 0011).
