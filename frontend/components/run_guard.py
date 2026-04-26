@@ -50,9 +50,9 @@ def check_run_allowed() -> bool:
 
 
 def render_run_limit_reached() -> None:
-    """Render the 'demo limit reached' UI."""
+    """Render the 'DEMO LIMIT REACHED' UI."""
     st.warning(
-        f"**<<< ! Demo limit reached ! >>>**  \n"
+        f"**<<< !!! DEMO LIMIT REACHED !!! >>>**  \n"
         f"You've used all {DEMO_RUN_CAP} runs available in this session. "
         f"Please refresh the page to start a new session."
     )

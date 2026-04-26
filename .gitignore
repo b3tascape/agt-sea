@@ -3,6 +3,7 @@
 
 # --- Hidden file archive ---
 .archive/
+prompts-private/
 
 # --- Python ---
 __pycache__/
@@ -19,6 +20,7 @@ dist/
 # --- IDE & System Junk ---
 .DS_Store
 .vscode/
+.claude/
 .idea/
 *.log
 
