@@ -129,9 +129,10 @@ def _v2_run_initial_stream(brief_text: str) -> None:
     """
     initial_state = AgencyState(
         client_brief=brief_text,
-        strategic_philosophy=st.session_state.strategic_philosophy,
-        creative_philosophy=st.session_state.creative_philosophy,
-        cd_philosophy=st.session_state.cd_philosophy,
+        strategist_st2_strategic_philosophy=st.session_state.strategist_st2_strategic_philosophy,
+        creative_a_st2_creative_philosophy=st.session_state.creative_a_st2_creative_philosophy,
+        creative_b_st2_creative_philosophy=st.session_state.creative_b_st2_creative_philosophy,
+        creative_director_st2_creative_philosophy=st.session_state.creative_director_st2_creative_philosophy,
         creative1_provenance=st.session_state.creative1_provenance,
         creative1_taste=st.session_state.creative1_taste,
         creative2_provenance=st.session_state.creative2_provenance,
@@ -246,7 +247,7 @@ def _render_v2_territory_selection() -> None:
     if paused_state.status == WorkflowStatus.FAILED:
         render_error_state(paused_state)
         st.markdown("---")
-        render_run_metadata(paused_state)
+        render_run_metadata(paused_state, mode="v2")
         render_footer()
         return
 
@@ -321,7 +322,7 @@ def _render_v2_terminal() -> None:
     if final_state.status == WorkflowStatus.FAILED:
         render_error_state(final_state)
         st.markdown("---")
-        render_run_metadata(final_state)
+        render_run_metadata(final_state, mode="v2")
         render_footer()
         return
 
@@ -352,7 +353,7 @@ def _render_v2_terminal() -> None:
     render_history(final_state.history)
 
     st.markdown("---")
-    render_run_metadata(final_state)
+    render_run_metadata(final_state, mode="v2")
     render_footer()
 
 
@@ -490,9 +491,9 @@ def _render_standard_v1() -> None:
 
         initial_state = AgencyState(
             client_brief=brief_text,
-            strategic_philosophy=st.session_state.strategic_philosophy,
-            creative_philosophy=st.session_state.creative_philosophy,
-            cd_philosophy=st.session_state.cd_philosophy,
+            strategist_st1_strategic_philosophy=st.session_state.strategist_st1_strategic_philosophy,
+            creative_st1_creative_philosophy=st.session_state.creative_st1_creative_philosophy,
+            creative_director_st1_creative_philosophy=st.session_state.creative_director_st1_creative_philosophy,
             max_iterations=st.session_state.max_iterations,
             approval_threshold=st.session_state.approval_threshold,
             llm_provider=st.session_state.llm_provider,
@@ -540,7 +541,7 @@ def _render_standard_v1() -> None:
         if final_state.status == WorkflowStatus.FAILED:
             render_error_state(final_state)
             st.markdown("---")
-            render_run_metadata(final_state)
+            render_run_metadata(final_state, mode="v1")
             render_footer()
         else:
             if final_state.status == WorkflowStatus.APPROVED:
@@ -558,7 +559,7 @@ def _render_standard_v1() -> None:
             render_history(final_state.history)
 
             st.markdown("---")
-            render_run_metadata(final_state)
+            render_run_metadata(final_state, mode="v1")
 
             render_footer()
 

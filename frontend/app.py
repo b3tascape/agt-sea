@@ -58,16 +58,22 @@ from agt_sea.config import get_llm_provider, get_model_name  # noqa: E402
 # Initialise session state defaults so pages never hit a missing key,
 # even if the sidebar fails to render on first load.
 _defaults: dict[str, object] = {
-    "strategic_philosophy": StrategicPhilosophy.NEUTRAL,
-    "creative_philosophy": CreativePhilosophy.NEUTRAL,
-    "cd_philosophy": CreativePhilosophy.NEUTRAL,
+    # Per-agent philosophy fields. Mirror the selectors inside the sidebar's
+    # "STANDARD 1.0 CONTROLS" and "STANDARD 2.0 CONTROLS" expanders.
+    "strategist_st1_strategic_philosophy": StrategicPhilosophy.NEUTRAL,
+    "creative_st1_creative_philosophy": CreativePhilosophy.NEUTRAL,
+    "creative_director_st1_creative_philosophy": CreativePhilosophy.NEUTRAL,
+    "strategist_st2_strategic_philosophy": StrategicPhilosophy.NEUTRAL,
+    "creative_a_st2_creative_philosophy": CreativePhilosophy.NEUTRAL,
+    "creative_b_st2_creative_philosophy": CreativePhilosophy.NEUTRAL,
+    "creative_director_st2_creative_philosophy": CreativePhilosophy.NEUTRAL,
     "llm_provider": get_llm_provider(),
     "llm_model": get_model_name(),
     "max_iterations": 3,
     "approval_threshold": 80.0,
     "run_count": 0,
     # [2.0] Per-role provenance/taste + per-agent temperature. Mirrors the
-    # new controls inside the sidebar's "STANDARD 2.0 CONTROLS" expander.
+    # controls inside the sidebar's "STANDARD 2.0 CONTROLS" expander.
     "creative1_provenance": Provenance.NEUTRAL,
     "creative1_taste": Taste.NEUTRAL,
     "creative1_temperature": 0.7,

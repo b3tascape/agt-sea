@@ -147,8 +147,8 @@ def run_cd_feedback(state: AgencyState) -> AgencyState:
 
     Reads ``state.campaign_concept`` (required), ``state.creative_brief``,
     ``state.grader_evaluation`` (optional — rendered when present), the
-    CD injection lenses (``cd_philosophy``, ``cd_provenance``,
-    ``cd_taste``), and ``cd_feedback_temperature``.
+    CD injection lenses (``creative_director_st2_creative_philosophy``,
+    ``cd_provenance``, ``cd_taste``), and ``cd_feedback_temperature``.
 
     Writes free-text coaching to ``state.cd_feedback_direction`` and
     appends an ``AgentOutput`` to ``state.history``.
@@ -179,7 +179,7 @@ def run_cd_feedback(state: AgencyState) -> AgencyState:
     )
 
     system_prompt = _build_system_prompt(
-        philosophy=state.cd_philosophy,
+        philosophy=state.creative_director_st2_creative_philosophy,
         provenance=state.cd_provenance,
         taste=state.cd_taste,
     )

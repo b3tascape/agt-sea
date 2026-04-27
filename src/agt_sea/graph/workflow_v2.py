@@ -66,7 +66,7 @@ from agt_sea.agents.cd_grader import run_cd_grader
 from agt_sea.agents.cd_synthesis import run_cd_synthesis
 from agt_sea.agents.creative1 import run_creative1
 from agt_sea.agents.creative2 import run_creative2
-from agt_sea.agents.strategist import run_strategist
+from agt_sea.agents.strategist import run_strategist_st2
 from agt_sea.graph.workflow import format_node_error
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
@@ -323,7 +323,7 @@ def build_graph_v2() -> StateGraph:
     graph = StateGraph(AgencyState)
 
     # --- Agent nodes (every one wrapped; wrapper re-raises GraphBubbleUp) ---
-    graph.add_node("strategist", _safe_node(run_strategist))
+    graph.add_node("strategist", _safe_node(run_strategist_st2))
     graph.add_node("creative1", _safe_node(run_creative1))
     graph.add_node(
         "interrupt_territory_selection",

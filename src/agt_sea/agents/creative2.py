@@ -181,7 +181,7 @@ def run_creative2(state: AgencyState) -> AgencyState:
     score and the CD's coaching.
 
     Reads ``state.selected_territory`` (required), ``state.creative_brief``,
-    the Creative 2 injection lenses (``creative_philosophy``,
+    the Creative 2 injection lenses (``creative_b_st2_creative_philosophy``,
     ``creative2_provenance``, ``creative2_taste``), the per-agent
     temperature (``creative2_temperature``), and the optional revision
     inputs (``grader_evaluation``, ``cd_feedback_direction``,
@@ -225,7 +225,7 @@ def run_creative2(state: AgencyState) -> AgencyState:
 
     if is_revision:
         system_prompt = _build_revision_prompt(
-            philosophy=state.creative_philosophy,
+            philosophy=state.creative_b_st2_creative_philosophy,
             provenance=state.creative2_provenance,
             taste=state.creative2_taste,
         )
@@ -249,7 +249,7 @@ def run_creative2(state: AgencyState) -> AgencyState:
         )
     else:
         system_prompt = _build_system_prompt(
-            philosophy=state.creative_philosophy,
+            philosophy=state.creative_b_st2_creative_philosophy,
             provenance=state.creative2_provenance,
             taste=state.creative2_taste,
         )

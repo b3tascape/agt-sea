@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from agt_sea.agents.strategist import run_strategist
+from agt_sea.agents.strategist import run_strategist_st2
 from agt_sea.graph.workflow import format_node_error
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
@@ -58,20 +58,18 @@ if run_button and brief_text:
     st.session_state.pop("strategy_result", None)
     state = AgencyState(
         client_brief=brief_text,
-        strategic_philosophy=st.session_state.strategic_philosophy,
-        creative_philosophy=st.session_state.creative_philosophy,
-        cd_philosophy=st.session_state.cd_philosophy,
+        strategist_st2_strategic_philosophy=st.session_state.strategist_st2_strategic_philosophy,
         llm_provider=st.session_state.llm_provider,
         llm_model=st.session_state.llm_model,
     )
     try:
         with st.spinner("strategist is writing the creative brief..."):
-            result = run_strategist(state)
+            result = run_strategist_st2(state)
     except Exception as exc:
         # Standalone pages don't go through _safe_node, so we reconstruct
         # the same state.error format here via format_node_error — the
         # shared helper that keeps this in sync with the graph path.
-        state.error = format_node_error("run_strategist", exc)
+        state.error = format_node_error("run_strategist_st2", exc)
         state.status = WorkflowStatus.FAILED
         result = state
     st.session_state.strategy_result = result

@@ -85,7 +85,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
     # structured output, then wrap the composed runnable with transport retry.
     llm = get_llm(provider=provider, model=model, temperature=0.7, with_retry=False)
 
-    system_prompt = _build_system_prompt(state.cd_philosophy)
+    system_prompt = _build_system_prompt(state.creative_director_st1_creative_philosophy)
 
     # Use structured output to get a validated CDEvaluation, then wrap the
     # composed runnable with transport-level retries.

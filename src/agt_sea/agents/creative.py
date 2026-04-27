@@ -114,7 +114,7 @@ def run_creative(state: AgencyState) -> AgencyState:
     is_revision = state.cd_evaluation is not None
 
     if is_revision:
-        system_prompt = _build_revision_prompt(state.creative_philosophy)
+        system_prompt = _build_revision_prompt(state.creative_st1_creative_philosophy)
         human_content = (
             f"Here is the creative brief:\n\n{state.creative_brief}\n\n"
             f"Here was your previous creative work:\n\n{state.creative_concept}\n\n"
@@ -126,7 +126,7 @@ def run_creative(state: AgencyState) -> AgencyState:
             "Please produce three improved creative approaches."
         )
     else:
-        system_prompt = _build_system_prompt(state.creative_philosophy)
+        system_prompt = _build_system_prompt(state.creative_st1_creative_philosophy)
         human_content = (
             f"Here is the creative brief:\n\n{state.creative_brief}\n\n"
             "Please produce three distinct creative approaches."

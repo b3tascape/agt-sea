@@ -64,21 +64,17 @@ def _build_system_prompt(philosophy: StrategicPhilosophy) -> str:
     )
 
 
-def run_strategist(state: AgencyState) -> AgencyState:
-    """Process the client brief and produce a creative brief.
-
-    Args:
-        state: The current agency state containing the client brief.
-
-    Returns:
-        Updated state with the creative brief and history entry.
-    """
+def _run_strategist(
+    state: AgencyState,
+    philosophy: StrategicPhilosophy,
+) -> AgencyState:
+    """Shared strategist body. Per-pipeline wrappers select the philosophy."""
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
     llm = get_llm(provider=provider, model=model, temperature=0.7)
 
     messages = [
-        SystemMessage(content=_build_system_prompt(state.strategic_philosophy)),
+        SystemMessage(content=_build_system_prompt(philosophy)),
         HumanMessage(content=(
             f"Here is the client brief:\n\n{state.client_brief}\n\n"
             "Please produce a creative brief."
@@ -88,7 +84,6 @@ def run_strategist(state: AgencyState) -> AgencyState:
     response = llm.invoke(messages)
     creative_brief = response.content
 
-    # Update state
     state.creative_brief = creative_brief
     state.status = WorkflowStatus.IN_PROGRESS
     state.history.append(
@@ -103,3 +98,13 @@ def run_strategist(state: AgencyState) -> AgencyState:
     )
 
     return state
+
+
+def run_strategist_st1(state: AgencyState) -> AgencyState:
+    """Standard 1.0 strategist — reads `strategist_st1_strategic_philosophy`."""
+    return _run_strategist(state, state.strategist_st1_strategic_philosophy)
+
+
+def run_strategist_st2(state: AgencyState) -> AgencyState:
+    """Standard 2.0 strategist — reads `strategist_st2_strategic_philosophy`."""
+    return _run_strategist(state, state.strategist_st2_strategic_philosophy)

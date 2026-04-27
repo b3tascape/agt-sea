@@ -151,7 +151,8 @@ def run_creative1(state: AgencyState) -> AgencyState:
     """Generate ``state.num_territories`` creative territories from the brief.
 
     Reads the creative brief plus the Creative 1 prompt-injection lenses
-    (creative_philosophy, creative1_provenance, creative1_taste), the
+    (creative_a_st2_creative_philosophy, creative1_provenance,
+    creative1_taste), the
     per-agent temperature (creative1_temperature), the territory count
     (num_territories), and the optional rerun feedback
     (territory_rejection_context). Writes the generated territories to
@@ -188,7 +189,7 @@ def run_creative1(state: AgencyState) -> AgencyState:
     )
 
     system_prompt = _build_system_prompt(
-        philosophy=state.creative_philosophy,
+        philosophy=state.creative_a_st2_creative_philosophy,
         provenance=state.creative1_provenance,
         taste=state.creative1_taste,
         num_territories=state.num_territories,

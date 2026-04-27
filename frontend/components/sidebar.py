@@ -30,44 +30,25 @@ def render_sidebar() -> None:
     """Render the sidebar: logo, global parameters, and footer.
 
     Writes to st.session_state keys:
-        strategic_philosophy, creative_philosophy, cd_philosophy,
         llm_provider, llm_model, max_iterations, approval_threshold.
 
+        Standard 1.0 (inside the collapsible "STANDARD 1.0 CONTROLS"
+        expander):
+            strategist_st1_strategic_philosophy,
+            creative_st1_creative_philosophy,
+            creative_director_st1_creative_philosophy.
+
         Standard 2.0 (inside the collapsible "STANDARD 2.0 CONTROLS"
-        expander — unused by Standard 1.0):
-            creative1_provenance, creative1_taste, creative1_temperature,
-            creative2_provenance, creative2_taste, creative2_temperature,
-            cd_provenance, cd_taste, cd_feedback_temperature,
-            cd_synthesis_temperature.
+        expander):
+            strategist_st2_strategic_philosophy,
+            creative_a_st2_creative_philosophy, creative1_provenance,
+            creative1_taste, creative1_temperature,
+            creative_b_st2_creative_philosophy, creative2_provenance,
+            creative2_taste, creative2_temperature,
+            creative_director_st2_creative_philosophy, cd_provenance,
+            cd_taste, cd_feedback_temperature, cd_synthesis_temperature.
     """
     # Logo is rendered via st.logo() in app.py, above the page nav.
-
-    # --- Philosophy group ---
-    selected_strategic_philosophy = st.sidebar.selectbox(
-        "PHILOSOPHY: STRATEGY",
-        options=list(STRATEGIC_PHILOSOPHY_LABELS.keys()),
-        format_func=lambda x: STRATEGIC_PHILOSOPHY_LABELS[x],
-        help="Sets the Strategist's approach and lens.",
-    )
-    st.session_state.strategic_philosophy = selected_strategic_philosophy
-
-    selected_creative_philosophy = st.sidebar.selectbox(
-        "PHILOSOPHY: CREATIVE",
-        options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
-        format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
-        help="Sets the Creative agent's generation lens.",
-    )
-    st.session_state.creative_philosophy = selected_creative_philosophy
-
-    selected_cd_philosophy = st.sidebar.selectbox(
-        "PHILOSOPHY: CD",
-        options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
-        format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
-        help="Sets the Creative Director's evaluation lens.",
-    )
-    st.session_state.cd_philosophy = selected_cd_philosophy
-
-    st.sidebar.markdown("---")
 
     # --- LLM Provider (only providers with a valid API key) ---
     available_providers = [
@@ -123,13 +104,60 @@ def render_sidebar() -> None:
 
     st.sidebar.markdown("---")
 
-    # --- Standard 2.0 controls (per-role provenance/taste + per-agent temperature) ---
-    # All controls inside this expander are v2-specific — Standard 1.0 ignores
-    # every field. Grouped behind a single collapsed expander so the sidebar
-    # stays approachable for users only running the v1 workflow. Streamlit
-    # does not allow nested expanders, so each role is a markdown sub-heading.
+    # --- Standard 1.0 controls (per-agent philosophies) ---
+    # Streamlit does not allow nested expanders, so each agent is a markdown
+    # sub-heading inside the expander.
+    with st.sidebar.expander("STANDARD 1.0 CONTROLS", expanded=False):
+        st.markdown("**Strategist**")
+        st.session_state.strategist_st1_strategic_philosophy = st.selectbox(
+            "PHILOSOPHY: STRATEGIST",
+            options=list(STRATEGIC_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: STRATEGIC_PHILOSOPHY_LABELS[x],
+            help="Strategic lens for the Standard 1.0 Strategist.",
+            key="sb_strategist_st1_strategic_philosophy",
+        )
+
+        st.markdown("---")
+        st.markdown("**Creative**")
+        st.session_state.creative_st1_creative_philosophy = st.selectbox(
+            "PHILOSOPHY: CREATIVE",
+            options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
+            help="Creative lens for the Standard 1.0 Creative agent.",
+            key="sb_creative_st1_creative_philosophy",
+        )
+
+        st.markdown("---")
+        st.markdown("**Creative Director**")
+        st.session_state.creative_director_st1_creative_philosophy = st.selectbox(
+            "PHILOSOPHY: CREATIVE DIRECTOR",
+            options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
+            help="Creative lens for the Standard 1.0 Creative Director.",
+            key="sb_creative_director_st1_creative_philosophy",
+        )
+
+    # --- Standard 2.0 controls (per-agent philosophies + per-role
+    # provenance/taste + per-agent temperature) ---
     with st.sidebar.expander("STANDARD 2.0 CONTROLS", expanded=False):
+        st.markdown("**Strategist**")
+        st.session_state.strategist_st2_strategic_philosophy = st.selectbox(
+            "PHILOSOPHY: STRATEGIST",
+            options=list(STRATEGIC_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: STRATEGIC_PHILOSOPHY_LABELS[x],
+            help="Strategic lens for the Standard 2.0 Strategist.",
+            key="sb_strategist_st2_strategic_philosophy",
+        )
+
+        st.markdown("---")
         st.markdown("**Creative 1** — territory generation")
+        st.session_state.creative_a_st2_creative_philosophy = st.selectbox(
+            "PHILOSOPHY: CREATIVE 1",
+            options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
+            help="Creative lens for Creative 1 (territory generation).",
+            key="sb_creative_a_st2_creative_philosophy",
+        )
         st.session_state.creative1_provenance = st.selectbox(
             "PROVENANCE: CREATIVE 1",
             options=list(PROVENANCE_LABELS.keys()),
@@ -156,6 +184,13 @@ def render_sidebar() -> None:
 
         st.markdown("---")
         st.markdown("**Creative 2** — campaign development")
+        st.session_state.creative_b_st2_creative_philosophy = st.selectbox(
+            "PHILOSOPHY: CREATIVE 2",
+            options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
+            help="Creative lens for Creative 2 (campaign development).",
+            key="sb_creative_b_st2_creative_philosophy",
+        )
         st.session_state.creative2_provenance = st.selectbox(
             "PROVENANCE: CREATIVE 2",
             options=list(PROVENANCE_LABELS.keys()),
@@ -183,8 +218,15 @@ def render_sidebar() -> None:
         st.markdown("---")
         st.markdown("**Creative Director** — feedback + synthesis")
         st.caption(
-            "Provenance and taste are shared by CD Feedback and CD Synthesis. "
-            "CD Grader is always neutral by contract."
+            "Philosophy, provenance, and taste are shared by CD Feedback "
+            "and CD Synthesis. CD Grader is always neutral by contract."
+        )
+        st.session_state.creative_director_st2_creative_philosophy = st.selectbox(
+            "PHILOSOPHY: CREATIVE DIRECTOR",
+            options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
+            format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
+            help="Creative lens shared by CD Feedback and CD Synthesis.",
+            key="sb_creative_director_st2_creative_philosophy",
         )
         st.session_state.cd_provenance = st.selectbox(
             "PROVENANCE: CD",

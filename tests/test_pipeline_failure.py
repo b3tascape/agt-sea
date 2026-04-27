@@ -12,8 +12,8 @@ Patching gotcha — read before editing
 --------------------------------------
 LangGraph's ``add_node(name, fn)`` captures the function object at
 graph-build time. By then, ``agt_sea/graph/workflow.py`` has already done
-``from agt_sea.agents.strategist import run_strategist``, which binds
-``run_strategist`` as an attribute on the ``agt_sea.graph.workflow``
+``from agt_sea.agents.strategist import run_strategist_st1``, which binds
+``run_strategist_st1`` as an attribute on the ``agt_sea.graph.workflow``
 module — NOT on ``agt_sea.agents.strategist``.
 
 These tests therefore:
@@ -46,14 +46,14 @@ def test_strategist_failure_surfaces_as_failed_status(
     Exercises: ``_safe_node`` capture → ``_check_failed`` routing →
     ``finalise_failed`` node → END.
     """
-    # Stub is named ``run_strategist`` (not ``boom_strategist``) so that
-    # ``_safe_node`` reads the production ``__name__`` when formatting
-    # ``state.error`` — the test then asserts on the same string users
-    # will see in the frontend.
-    def run_strategist(state: AgencyState) -> AgencyState:
+    # Stub is named ``run_strategist_st1`` (not ``boom_strategist``) so
+    # that ``_safe_node`` reads the production ``__name__`` when
+    # formatting ``state.error`` — the test then asserts on the same
+    # string users will see in the frontend.
+    def run_strategist_st1(state: AgencyState) -> AgencyState:
         raise RuntimeError("strategist boom")
 
-    monkeypatch.setattr(workflow_module, "run_strategist", run_strategist)
+    monkeypatch.setattr(workflow_module, "run_strategist_st1", run_strategist_st1)
 
     # Rebuild the graph AFTER the patch so the compiled node captures the
     # patched symbol (see module docstring).
@@ -71,7 +71,7 @@ def test_strategist_failure_surfaces_as_failed_status(
     assert final_state.error is not None
     # Error format is the contract with frontend/components/error_state.py —
     # if this shape changes, that component breaks.
-    assert "run_strategist failed" in final_state.error
+    assert "run_strategist_st1 failed" in final_state.error
     assert "RuntimeError" in final_state.error
     assert "strategist boom" in final_state.error
 
@@ -97,7 +97,7 @@ def test_creative_director_failure_surfaces_as_failed_status(
     """
     # Stubs are named after the real agent functions so ``_safe_node``
     # reads the production ``__name__`` when formatting ``state.error``.
-    def run_strategist(state: AgencyState) -> AgencyState:
+    def run_strategist_st1(state: AgencyState) -> AgencyState:
         # Minimal: only populates creative_brief (read by creative).
         state.creative_brief = "stub brief"
         return state
@@ -111,7 +111,7 @@ def test_creative_director_failure_surfaces_as_failed_status(
     def run_creative_director(state: AgencyState) -> AgencyState:
         raise RuntimeError("cd boom")
 
-    monkeypatch.setattr(workflow_module, "run_strategist", run_strategist)
+    monkeypatch.setattr(workflow_module, "run_strategist_st1", run_strategist_st1)
     monkeypatch.setattr(workflow_module, "run_creative", run_creative)
     monkeypatch.setattr(
         workflow_module, "run_creative_director", run_creative_director

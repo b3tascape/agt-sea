@@ -299,17 +299,39 @@ class AgencyState(BaseModel):
         default="",
         description="The raw client brief as supplied.",
     )
-    strategic_philosophy: StrategicPhilosophy = Field(
+    # Per-agent philosophy lenses. Standard 1.0 and Standard 2.0 each get
+    # their own set so the two pipelines can be steered independently. CD
+    # Grader (st2) is omitted on purpose — neutral by contract.
+    strategist_st1_strategic_philosophy: StrategicPhilosophy = Field(
         default=StrategicPhilosophy.NEUTRAL,
-        description="The strategic lens the Strategist uses when writing the brief.",
+        description="Strategic lens for the Standard 1.0 Strategist.",
     )
-    creative_philosophy: CreativePhilosophy = Field(
+    creative_st1_creative_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.NEUTRAL,
-        description="The creative lens the Creative agent uses when generating ideas.",
+        description="Creative lens for the Standard 1.0 Creative agent.",
     )
-    cd_philosophy: CreativePhilosophy = Field(
+    creative_director_st1_creative_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.NEUTRAL,
-        description="The creative lens the Creative Director uses to evaluate and direct work.",
+        description="Creative lens for the Standard 1.0 Creative Director.",
+    )
+    strategist_st2_strategic_philosophy: StrategicPhilosophy = Field(
+        default=StrategicPhilosophy.NEUTRAL,
+        description="Strategic lens for the Standard 2.0 Strategist.",
+    )
+    creative_a_st2_creative_philosophy: CreativePhilosophy = Field(
+        default=CreativePhilosophy.NEUTRAL,
+        description="Creative lens for Creative 1 (territory generation, Standard 2.0).",
+    )
+    creative_b_st2_creative_philosophy: CreativePhilosophy = Field(
+        default=CreativePhilosophy.NEUTRAL,
+        description="Creative lens for Creative 2 (campaign development, Standard 2.0).",
+    )
+    creative_director_st2_creative_philosophy: CreativePhilosophy = Field(
+        default=CreativePhilosophy.NEUTRAL,
+        description=(
+            "Creative lens shared by CD Feedback and CD Synthesis (Standard "
+            "2.0). CD Grader is neutral by contract and has no philosophy."
+        ),
     )
     # [2.0] Per-role provenance / taste lenses. CD pair is shared by CD Feedback
     # and CD Synthesis; CD Grader is always neutral by contract.

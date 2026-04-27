@@ -91,9 +91,7 @@ def _render_c1_territory() -> None:
         state = AgencyState(
             creative_brief=brief_text,
             num_territories=int(num_territories),
-            strategic_philosophy=st.session_state.strategic_philosophy,
-            creative_philosophy=st.session_state.creative_philosophy,
-            cd_philosophy=st.session_state.cd_philosophy,
+            creative_a_st2_creative_philosophy=st.session_state.creative_a_st2_creative_philosophy,
             creative1_provenance=st.session_state.creative1_provenance,
             creative1_taste=st.session_state.creative1_taste,
             creative1_temperature=st.session_state.creative1_temperature,
@@ -170,9 +168,7 @@ def _render_c0_original() -> None:
         st.session_state.pop("creative_result", None)
         state = AgencyState(
             creative_brief=brief_text,
-            strategic_philosophy=st.session_state.strategic_philosophy,
-            creative_philosophy=st.session_state.creative_philosophy,
-            cd_philosophy=st.session_state.cd_philosophy,
+            creative_st1_creative_philosophy=st.session_state.creative_st1_creative_philosophy,
             llm_provider=st.session_state.llm_provider,
             llm_model=st.session_state.llm_model,
         )

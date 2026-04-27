@@ -17,7 +17,7 @@ from agt_sea.models.state import (
     AgentRole,
     WorkflowStatus,
 )
-from agt_sea.agents.strategist import run_strategist
+from agt_sea.agents.strategist import run_strategist_st1
 from agt_sea.agents.creative import run_creative
 from agt_sea.agents.creative_director import (
     run_creative_director,
@@ -154,7 +154,7 @@ def build_graph() -> StateGraph:
 
     # --- Add nodes (agents wrapped with _safe_node for orchestration-layer
     # exception handling — agent functions themselves stay untouched) ---
-    graph.add_node("strategist", _safe_node(run_strategist))
+    graph.add_node("strategist", _safe_node(run_strategist_st1))
     graph.add_node("creative", _safe_node(run_creative))
     graph.add_node("creative_director", _safe_node(run_creative_director))
     graph.add_node("check_iterations", lambda state: state)  # pass-through

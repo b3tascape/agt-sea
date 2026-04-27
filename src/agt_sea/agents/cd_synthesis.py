@@ -157,8 +157,9 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
 
     Reads ``state.campaign_concept`` (required), ``state.grader_evaluation``
     (optional — rendered as a placeholder when absent), ``state.history``,
-    and the CD injection lenses (``cd_philosophy``, ``cd_provenance``,
-    ``cd_taste``). Temperature from ``state.cd_synthesis_temperature``.
+    and the CD injection lenses (``creative_director_st2_creative_philosophy``,
+    ``cd_provenance``, ``cd_taste``). Temperature from
+    ``state.cd_synthesis_temperature``.
 
     Writes ``state.cd_synthesis`` and appends an ``AgentOutput`` to
     ``state.history``.
@@ -190,7 +191,7 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
     )
 
     system_prompt = _build_system_prompt(
-        philosophy=state.cd_philosophy,
+        philosophy=state.creative_director_st2_creative_philosophy,
         provenance=state.cd_provenance,
         taste=state.cd_taste,
     )
