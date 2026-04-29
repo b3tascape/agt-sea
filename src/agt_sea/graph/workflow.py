@@ -17,10 +17,10 @@ from agt_sea.models.state import (
     AgentRole,
     WorkflowStatus,
 )
-from agt_sea.agents.strategist import run_strategist_st1
-from agt_sea.agents.creative import run_creative
-from agt_sea.agents.creative_director import (
-    run_creative_director,
+from agt_sea.agents.strategist_st1 import run_strategist_st1
+from agt_sea.agents.creative_st1 import run_creative_st1
+from agt_sea.agents.creative_director_st1 import (
+    run_creative_director_st1,
     check_approval,
     check_max_iterations,
 )
@@ -113,7 +113,7 @@ def _finalise_max_iterations(state: AgencyState) -> AgencyState:
     creative_by_iteration: dict[int, str] = {}
 
     for entry in state.history:
-        if entry.agent == AgentRole.CREATIVE:
+        if entry.agent == AgentRole.CREATIVE_ST1:
             creative_by_iteration[entry.iteration] = entry.content
         if entry.evaluation and entry.evaluation.score > best_score:
             best_score = entry.evaluation.score
@@ -135,11 +135,11 @@ def build_graph() -> StateGraph:
     """Build and compile the creative agency workflow graph.
 
     Graph structure (success path):
-        input → strategist → creative → creative_director
+        input → strategist_st1 → creative_st1 → creative_director_st1
             → check_approval
                 → approved → finalise_approved → END
                 → not_approved → check_iterations
-                    → continue → creative (loop)
+                    → continue → creative_st1 (loop)
                     → max_reached → finalise_max_iterations → END
 
     Failure path (any agent raises):
@@ -154,38 +154,39 @@ def build_graph() -> StateGraph:
 
     # --- Add nodes (agents wrapped with _safe_node for orchestration-layer
     # exception handling — agent functions themselves stay untouched) ---
-    graph.add_node("strategist", _safe_node(run_strategist_st1))
-    graph.add_node("creative", _safe_node(run_creative))
-    graph.add_node("creative_director", _safe_node(run_creative_director))
+    graph.add_node("strategist_st1", _safe_node(run_strategist_st1))
+    graph.add_node("creative_st1", _safe_node(run_creative_st1))
+    graph.add_node("creative_director_st1", _safe_node(run_creative_director_st1))
     graph.add_node("check_iterations", lambda state: state)  # pass-through
     graph.add_node("finalise_approved", _finalise_approved)
     graph.add_node("finalise_max_iterations", _finalise_max_iterations)
     graph.add_node("finalise_failed", _finalise_failed)
 
     # --- Define edges ---
-    # Linear flow: strategist → creative → creative_director, each gated
-    # by _check_failed so a captured error diverts to finalise_failed.
-    graph.set_entry_point("strategist")
+    # Linear flow: strategist_st1 → creative_st1 → creative_director_st1,
+    # each gated by _check_failed so a captured error diverts to
+    # finalise_failed.
+    graph.set_entry_point("strategist_st1")
     graph.add_conditional_edges(
-        "strategist",
+        "strategist_st1",
         _check_failed,
         {
-            "ok": "creative",
+            "ok": "creative_st1",
             "failed": "finalise_failed",
         },
     )
     graph.add_conditional_edges(
-        "creative",
+        "creative_st1",
         _check_failed,
         {
-            "ok": "creative_director",
+            "ok": "creative_director_st1",
             "failed": "finalise_failed",
         },
     )
 
-    # Conditional: creative_director → check approval (with error guard)
+    # Conditional: creative_director_st1 → check approval (with error guard)
     graph.add_conditional_edges(
-        "creative_director",
+        "creative_director_st1",
         check_approval,
         {
             "approved": "finalise_approved",
@@ -199,7 +200,7 @@ def build_graph() -> StateGraph:
         "check_iterations",
         check_max_iterations,
         {
-            "continue": "creative",
+            "continue": "creative_st1",
             "max_reached": "finalise_max_iterations",
             "failed": "finalise_failed",
         },

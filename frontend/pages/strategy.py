@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from agt_sea.agents.strategist import run_strategist_st2
+from agt_sea.agents.strategist_st2 import run_strategist_st2
 from agt_sea.graph.workflow import format_node_error
 from agt_sea.models.state import AgencyState, WorkflowStatus
 

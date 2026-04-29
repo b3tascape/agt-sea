@@ -1,5 +1,5 @@
 """
-agt_sea — Creative 2 Agent (Standard 2.0)
+agt_sea — Creative B Agent (Standard 2.0)
 
 Campaign development. Takes the territory the user selected at the
 interrupt and develops it into a full ``CampaignConcept`` — title, core
@@ -14,7 +14,7 @@ Two prompt paths, mirroring the Standard 1.0 Creative agent:
   grader's score and the CD's coaching into the next pass.
 
 Philosophy, provenance, and taste are each injected via the neutral-skip
-pattern. Temperature comes from ``state.creative2_temperature``.
+pattern. Temperature comes from ``state.creative_b_st2_temperature``.
 """
 
 from __future__ import annotations
@@ -172,7 +172,7 @@ def _render_campaign_concept(concept: CampaignConcept) -> str:
     )
 
 
-def run_creative2(state: AgencyState) -> AgencyState:
+def run_creative_b_st2(state: AgencyState) -> AgencyState:
     """Develop the selected territory into a full campaign concept.
 
     On the initial pass, works from the creative brief plus the selected
@@ -181,9 +181,9 @@ def run_creative2(state: AgencyState) -> AgencyState:
     score and the CD's coaching.
 
     Reads ``state.selected_territory`` (required), ``state.creative_brief``,
-    the Creative 2 injection lenses (``creative_b_st2_creative_philosophy``,
-    ``creative2_provenance``, ``creative2_taste``), the per-agent
-    temperature (``creative2_temperature``), and the optional revision
+    the Creative B injection lenses (``creative_b_st2_creative_philosophy``,
+    ``creative_b_st2_provenance``, ``creative_b_st2_taste``), the per-agent
+    temperature (``creative_b_st2_temperature``), and the optional revision
     inputs (``grader_evaluation``, ``cd_feedback_direction``,
     ``campaign_concept``).
 
@@ -191,27 +191,27 @@ def run_creative2(state: AgencyState) -> AgencyState:
     ``state.history``.
 
     Raises:
-        ValueError: If ``state.selected_territory`` is None. Creative 2
+        ValueError: If ``state.selected_territory`` is None. Creative B
             cannot run without a territory to develop — this is a caller
             contract violation, not a recoverable runtime condition, so
             it short-circuits with a clear error before any LLM call.
     """
     if state.selected_territory is None:
         raise ValueError(
-            "run_creative2 requires state.selected_territory to be set. "
+            "run_creative_b_st2 requires state.selected_territory to be set. "
             "The graph's territory-selection interrupt (or a standalone "
-            "caller) must populate it before invoking Creative 2."
+            "caller) must populate it before invoking Creative B."
         )
 
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
 
     # Raw chat model so we can compose .with_structured_output() before
-    # wrapping with transport retry — same pattern as Creative 1 / CD.
+    # wrapping with transport retry — same pattern as Creative A / CD.
     llm = get_llm(
         provider=provider,
         model=model,
-        temperature=state.creative2_temperature,
+        temperature=state.creative_b_st2_temperature,
         with_retry=False,
     )
     structured_llm = wrap_with_transport_retry(
@@ -226,8 +226,8 @@ def run_creative2(state: AgencyState) -> AgencyState:
     if is_revision:
         system_prompt = _build_revision_prompt(
             philosophy=state.creative_b_st2_creative_philosophy,
-            provenance=state.creative2_provenance,
-            taste=state.creative2_taste,
+            provenance=state.creative_b_st2_provenance,
+            taste=state.creative_b_st2_taste,
         )
         previous_concept_block = (
             _render_campaign_concept(state.campaign_concept)
@@ -250,8 +250,8 @@ def run_creative2(state: AgencyState) -> AgencyState:
     else:
         system_prompt = _build_system_prompt(
             philosophy=state.creative_b_st2_creative_philosophy,
-            provenance=state.creative2_provenance,
-            taste=state.creative2_taste,
+            provenance=state.creative_b_st2_provenance,
+            taste=state.creative_b_st2_taste,
         )
         human_content = (
             f"Here is the creative brief:\n\n{state.creative_brief}\n\n"
@@ -278,7 +278,7 @@ def run_creative2(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.REVIEW
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CREATIVE_2,
+            agent=AgentRole.CREATIVE_B_ST2,
             provider=provider,
             model=model,
             iteration=state.iteration,

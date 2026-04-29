@@ -61,12 +61,12 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.graph import END, StateGraph
 from langgraph.types import interrupt
 
-from agt_sea.agents.cd_feedback import run_cd_feedback
-from agt_sea.agents.cd_grader import run_cd_grader
-from agt_sea.agents.cd_synthesis import run_cd_synthesis
-from agt_sea.agents.creative1 import run_creative1
-from agt_sea.agents.creative2 import run_creative2
-from agt_sea.agents.strategist import run_strategist_st2
+from agt_sea.agents.cd_feedback_st2 import run_cd_feedback_st2
+from agt_sea.agents.cd_grader_st2 import run_cd_grader_st2
+from agt_sea.agents.cd_synthesis_st2 import run_cd_synthesis_st2
+from agt_sea.agents.creative_a_st2 import run_creative_a_st2
+from agt_sea.agents.creative_b_st2 import run_creative_b_st2
+from agt_sea.agents.strategist_st2 import run_strategist_st2
 from agt_sea.graph.workflow import format_node_error
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
@@ -303,12 +303,12 @@ def build_graph_v2() -> StateGraph:
     """Build and compile the Standard 2.0 creative agency workflow graph.
 
     Graph structure (success path):
-        START -> strategist -> creative1 -> interrupt_territory_selection
-            -> (rerun) -> creative1 (loop)
-            -> (select) -> creative2 -> cd_grader
-                -> approved -> cd_synthesis -> finalise_approved -> END
-                -> rejected + budget -> cd_feedback -> creative2 (loop)
-                -> rejected + exhausted -> cd_synthesis -> finalise_max_iterations -> END
+        START -> strategist_st2 -> creative_a_st2 -> interrupt_territory_selection
+            -> (rerun) -> creative_a_st2 (loop)
+            -> (select) -> creative_b_st2 -> cd_grader_st2
+                -> approved -> cd_synthesis_st2 -> finalise_approved -> END
+                -> rejected + budget -> cd_feedback_st2 -> creative_b_st2 (loop)
+                -> rejected + exhausted -> cd_synthesis_st2 -> finalise_max_iterations -> END
 
     Failure path (any agent raises a non-control-flow exception):
         _safe_node writes the error string into ``state.error``; the
@@ -323,16 +323,16 @@ def build_graph_v2() -> StateGraph:
     graph = StateGraph(AgencyState)
 
     # --- Agent nodes (every one wrapped; wrapper re-raises GraphBubbleUp) ---
-    graph.add_node("strategist", _safe_node(run_strategist_st2))
-    graph.add_node("creative1", _safe_node(run_creative1))
+    graph.add_node("strategist_st2", _safe_node(run_strategist_st2))
+    graph.add_node("creative_a_st2", _safe_node(run_creative_a_st2))
     graph.add_node(
         "interrupt_territory_selection",
         _safe_node(_interrupt_territory_selection),
     )
-    graph.add_node("creative2", _safe_node(run_creative2))
-    graph.add_node("cd_grader", _safe_node(run_cd_grader))
-    graph.add_node("cd_feedback", _safe_node(run_cd_feedback))
-    graph.add_node("cd_synthesis", _safe_node(run_cd_synthesis))
+    graph.add_node("creative_b_st2", _safe_node(run_creative_b_st2))
+    graph.add_node("cd_grader_st2", _safe_node(run_cd_grader_st2))
+    graph.add_node("cd_feedback_st2", _safe_node(run_cd_feedback_st2))
+    graph.add_node("cd_synthesis_st2", _safe_node(run_cd_synthesis_st2))
 
     # --- Finalisation nodes (unwrapped — they own state.status mutation) ---
     graph.add_node("finalise_approved", _finalise_approved)
@@ -340,15 +340,15 @@ def build_graph_v2() -> StateGraph:
     graph.add_node("finalise_failed", _finalise_failed)
 
     # --- Edges ---
-    graph.set_entry_point("strategist")
+    graph.set_entry_point("strategist_st2")
 
     graph.add_conditional_edges(
-        "strategist",
+        "strategist_st2",
         _check_failed,
-        {"ok": "creative1", "failed": "finalise_failed"},
+        {"ok": "creative_a_st2", "failed": "finalise_failed"},
     )
     graph.add_conditional_edges(
-        "creative1",
+        "creative_a_st2",
         _check_failed,
         {"ok": "interrupt_territory_selection", "failed": "finalise_failed"},
     )
@@ -356,33 +356,33 @@ def build_graph_v2() -> StateGraph:
         "interrupt_territory_selection",
         _route_after_interrupt,
         {
-            "selected": "creative2",
-            "rerun": "creative1",
+            "selected": "creative_b_st2",
+            "rerun": "creative_a_st2",
             "failed": "finalise_failed",
         },
     )
     graph.add_conditional_edges(
-        "creative2",
+        "creative_b_st2",
         _check_failed,
-        {"ok": "cd_grader", "failed": "finalise_failed"},
+        {"ok": "cd_grader_st2", "failed": "finalise_failed"},
     )
     graph.add_conditional_edges(
-        "cd_grader",
+        "cd_grader_st2",
         _check_approval,
         {
-            "approved": "cd_synthesis",
-            "rejected_budget": "cd_feedback",
-            "rejected_exhausted": "cd_synthesis",
+            "approved": "cd_synthesis_st2",
+            "rejected_budget": "cd_feedback_st2",
+            "rejected_exhausted": "cd_synthesis_st2",
             "failed": "finalise_failed",
         },
     )
     graph.add_conditional_edges(
-        "cd_feedback",
+        "cd_feedback_st2",
         _check_failed,
-        {"ok": "creative2", "failed": "finalise_failed"},
+        {"ok": "creative_b_st2", "failed": "finalise_failed"},
     )
     graph.add_conditional_edges(
-        "cd_synthesis",
+        "cd_synthesis_st2",
         _route_after_synthesis,
         {
             "approved": "finalise_approved",

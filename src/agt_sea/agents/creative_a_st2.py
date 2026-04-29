@@ -1,11 +1,11 @@
 """
-agt_sea — Creative 1 Agent (Standard 2.0)
+agt_sea — Creative A Agent (Standard 2.0)
 
 Territory generation. Takes the creative brief produced by the Strategist
 and generates ``state.num_territories`` distinct creative territories —
 tight artifacts with a title, a 1-2 sentence core idea, and a brief
 rationale. No execution details, no channel recommendations — that's
-the Creative 2 stage's job.
+the Creative B stage's job.
 
 Structured output is enforced via a module-local ``TerritorySet`` wrapper
 because LangChain's ``with_structured_output()`` rejects bare generic
@@ -147,13 +147,13 @@ def _build_human_message(
     )
 
 
-def run_creative1(state: AgencyState) -> AgencyState:
+def run_creative_a_st2(state: AgencyState) -> AgencyState:
     """Generate ``state.num_territories`` creative territories from the brief.
 
-    Reads the creative brief plus the Creative 1 prompt-injection lenses
-    (creative_a_st2_creative_philosophy, creative1_provenance,
-    creative1_taste), the
-    per-agent temperature (creative1_temperature), the territory count
+    Reads the creative brief plus the Creative A prompt-injection lenses
+    (creative_a_st2_creative_philosophy, creative_a_st2_provenance,
+    creative_a_st2_taste), the per-agent temperature
+    (creative_a_st2_temperature), the territory count
     (num_territories), and the optional rerun feedback
     (territory_rejection_context). Writes the generated territories to
     ``state.territories`` and appends an ``AgentOutput`` to
@@ -181,7 +181,7 @@ def run_creative1(state: AgencyState) -> AgencyState:
     llm = get_llm(
         provider=provider,
         model=model,
-        temperature=state.creative1_temperature,
+        temperature=state.creative_a_st2_temperature,
         with_retry=False,
     )
     structured_llm = wrap_with_transport_retry(
@@ -190,8 +190,8 @@ def run_creative1(state: AgencyState) -> AgencyState:
 
     system_prompt = _build_system_prompt(
         philosophy=state.creative_a_st2_creative_philosophy,
-        provenance=state.creative1_provenance,
-        taste=state.creative1_taste,
+        provenance=state.creative_a_st2_provenance,
+        taste=state.creative_a_st2_taste,
         num_territories=state.num_territories,
     )
     human_content = _build_human_message(
@@ -224,7 +224,7 @@ def run_creative1(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.IN_PROGRESS
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CREATIVE_1,
+            agent=AgentRole.CREATIVE_A_ST2,
             provider=provider,
             model=model,
             iteration=state.iteration,

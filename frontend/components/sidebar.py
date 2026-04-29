@@ -41,12 +41,16 @@ def render_sidebar() -> None:
         Standard 2.0 (inside the collapsible "STANDARD 2.0 CONTROLS"
         expander):
             strategist_st2_strategic_philosophy,
-            creative_a_st2_creative_philosophy, creative1_provenance,
-            creative1_taste, creative1_temperature,
-            creative_b_st2_creative_philosophy, creative2_provenance,
-            creative2_taste, creative2_temperature,
-            creative_director_st2_creative_philosophy, cd_provenance,
-            cd_taste, cd_feedback_temperature, cd_synthesis_temperature.
+            creative_a_st2_creative_philosophy,
+            creative_a_st2_provenance, creative_a_st2_taste,
+            creative_a_st2_temperature,
+            creative_b_st2_creative_philosophy,
+            creative_b_st2_provenance, creative_b_st2_taste,
+            creative_b_st2_temperature,
+            creative_director_st2_creative_philosophy,
+            creative_director_st2_provenance,
+            creative_director_st2_taste,
+            cd_feedback_st2_temperature, cd_synthesis_st2_temperature.
     """
     # Logo is rendered via st.logo() in app.py, above the page nav.
 
@@ -158,28 +162,28 @@ def render_sidebar() -> None:
             help="Creative lens for Creative 1 (territory generation).",
             key="sb_creative_a_st2_creative_philosophy",
         )
-        st.session_state.creative1_provenance = st.selectbox(
+        st.session_state.creative_a_st2_provenance = st.selectbox(
             "PROVENANCE: CREATIVE 1",
             options=list(PROVENANCE_LABELS.keys()),
             format_func=lambda x: PROVENANCE_LABELS[x],
             help="Background/upbringing lens injected into Creative 1.",
-            key="sb_creative1_provenance",
+            key="sb_creative_a_st2_provenance",
         )
-        st.session_state.creative1_taste = st.selectbox(
+        st.session_state.creative_a_st2_taste = st.selectbox(
             "TASTE: CREATIVE 1",
             options=list(TASTE_LABELS.keys()),
             format_func=lambda x: TASTE_LABELS[x],
             help="Aesthetic/influence lens injected into Creative 1.",
-            key="sb_creative1_taste",
+            key="sb_creative_a_st2_taste",
         )
-        st.session_state.creative1_temperature = st.slider(
+        st.session_state.creative_a_st2_temperature = st.slider(
             "TEMPERATURE: CREATIVE 1",
             min_value=0.0,
             max_value=1.0,
             value=0.7,
             step=0.05,
             help="Sampling temperature for Creative 1 (territory generation).",
-            key="sb_creative1_temperature",
+            key="sb_creative_a_st2_temperature",
         )
 
         st.markdown("---")
@@ -191,28 +195,28 @@ def render_sidebar() -> None:
             help="Creative lens for Creative 2 (campaign development).",
             key="sb_creative_b_st2_creative_philosophy",
         )
-        st.session_state.creative2_provenance = st.selectbox(
+        st.session_state.creative_b_st2_provenance = st.selectbox(
             "PROVENANCE: CREATIVE 2",
             options=list(PROVENANCE_LABELS.keys()),
             format_func=lambda x: PROVENANCE_LABELS[x],
             help="Background/upbringing lens injected into Creative 2.",
-            key="sb_creative2_provenance",
+            key="sb_creative_b_st2_provenance",
         )
-        st.session_state.creative2_taste = st.selectbox(
+        st.session_state.creative_b_st2_taste = st.selectbox(
             "TASTE: CREATIVE 2",
             options=list(TASTE_LABELS.keys()),
             format_func=lambda x: TASTE_LABELS[x],
             help="Aesthetic/influence lens injected into Creative 2.",
-            key="sb_creative2_taste",
+            key="sb_creative_b_st2_taste",
         )
-        st.session_state.creative2_temperature = st.slider(
+        st.session_state.creative_b_st2_temperature = st.slider(
             "TEMPERATURE: CREATIVE 2",
             min_value=0.0,
             max_value=1.0,
             value=0.7,
             step=0.05,
             help="Sampling temperature for Creative 2 (campaign development).",
-            key="sb_creative2_temperature",
+            key="sb_creative_b_st2_temperature",
         )
 
         st.markdown("---")
@@ -228,37 +232,37 @@ def render_sidebar() -> None:
             help="Creative lens shared by CD Feedback and CD Synthesis.",
             key="sb_creative_director_st2_creative_philosophy",
         )
-        st.session_state.cd_provenance = st.selectbox(
+        st.session_state.creative_director_st2_provenance = st.selectbox(
             "PROVENANCE: CD",
             options=list(PROVENANCE_LABELS.keys()),
             format_func=lambda x: PROVENANCE_LABELS[x],
             help="Background/upbringing lens for CD Feedback and CD Synthesis.",
-            key="sb_cd_provenance",
+            key="sb_creative_director_st2_provenance",
         )
-        st.session_state.cd_taste = st.selectbox(
+        st.session_state.creative_director_st2_taste = st.selectbox(
             "TASTE: CD",
             options=list(TASTE_LABELS.keys()),
             format_func=lambda x: TASTE_LABELS[x],
             help="Aesthetic/influence lens for CD Feedback and CD Synthesis.",
-            key="sb_cd_taste",
+            key="sb_creative_director_st2_taste",
         )
-        st.session_state.cd_feedback_temperature = st.slider(
+        st.session_state.cd_feedback_st2_temperature = st.slider(
             "TEMPERATURE: CD FEEDBACK",
             min_value=0.0,
             max_value=1.0,
             value=0.7,
             step=0.05,
             help="Sampling temperature for CD Feedback (qualitative revision direction).",
-            key="sb_cd_feedback_temperature",
+            key="sb_cd_feedback_st2_temperature",
         )
-        st.session_state.cd_synthesis_temperature = st.slider(
+        st.session_state.cd_synthesis_st2_temperature = st.slider(
             "TEMPERATURE: CD SYNTHESIS",
             min_value=0.0,
             max_value=1.0,
             value=0.7,
             step=0.05,
             help="Sampling temperature for CD Synthesis (final editorial judgement).",
-            key="sb_cd_synthesis_temperature",
+            key="sb_cd_synthesis_st2_temperature",
         )
 
     st.sidebar.markdown("---")

@@ -1,16 +1,17 @@
 """
-agt_sea — Strategist Agent
+agt_sea — Strategist Agent (Standard 1.0)
 
 Takes a raw client brief and produces a structured creative brief
-that will guide the Creative agent's idea generation.
+that will guide the Standard 1.0 Creative agent's idea generation.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
+from agt_sea.config import get_llm_provider, get_model_name
 from agt_sea.llm.provider import get_llm
 from agt_sea.models.state import (
     AgencyState,
@@ -19,8 +20,6 @@ from agt_sea.models.state import (
     StrategicPhilosophy,
     WorkflowStatus,
 )
-
-from agt_sea.config import get_llm_provider, get_model_name
 from agt_sea.prompts.loader import (
     load_guidance,
     load_strategic_philosophy,
@@ -64,17 +63,16 @@ def _build_system_prompt(philosophy: StrategicPhilosophy) -> str:
     )
 
 
-def _run_strategist(
-    state: AgencyState,
-    philosophy: StrategicPhilosophy,
-) -> AgencyState:
-    """Shared strategist body. Per-pipeline wrappers select the philosophy."""
+def run_strategist_st1(state: AgencyState) -> AgencyState:
+    """Standard 1.0 strategist — reads ``strategist_st1_strategic_philosophy``."""
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
     llm = get_llm(provider=provider, model=model, temperature=0.7)
 
     messages = [
-        SystemMessage(content=_build_system_prompt(philosophy)),
+        SystemMessage(
+            content=_build_system_prompt(state.strategist_st1_strategic_philosophy)
+        ),
         HumanMessage(content=(
             f"Here is the client brief:\n\n{state.client_brief}\n\n"
             "Please produce a creative brief."
@@ -88,7 +86,7 @@ def _run_strategist(
     state.status = WorkflowStatus.IN_PROGRESS
     state.history.append(
         AgentOutput(
-            agent=AgentRole.STRATEGIST,
+            agent=AgentRole.STRATEGIST_ST1,
             provider=provider,
             model=model,
             iteration=state.iteration,
@@ -98,13 +96,3 @@ def _run_strategist(
     )
 
     return state
-
-
-def run_strategist_st1(state: AgencyState) -> AgencyState:
-    """Standard 1.0 strategist — reads `strategist_st1_strategic_philosophy`."""
-    return _run_strategist(state, state.strategist_st1_strategic_philosophy)
-
-
-def run_strategist_st2(state: AgencyState) -> AgencyState:
-    """Standard 2.0 strategist — reads `strategist_st2_strategic_philosophy`."""
-    return _run_strategist(state, state.strategist_st2_strategic_philosophy)

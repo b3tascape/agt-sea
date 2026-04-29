@@ -2,7 +2,7 @@
 
 An AI-powered creative marketing tool for brands and agencies offering a number of services designed to improve creative output. 
 
-The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `c1_territory` (default) for Standard 2.0 territory generation via the Creative 1 agent, and `c0_original` for the original single-shot creative agent. The Workflow page mirrors that structure: `Standard 2.0` (default) runs the multi-stage v2 pipeline with a human-in-the-loop territory selection interrupt; `Standard 1.0` runs the original v1 pipeline unchanged.
+The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `st2_territory` (default) for Standard 2.0 territory generation via the Creative A agent, and `st1_campaign` for the original single-shot creative agent. The Workflow page mirrors that structure: `Standard 2.0` (default) runs the multi-stage v2 pipeline with a human-in-the-loop territory selection interrupt; `Standard 1.0` runs the original v1 pipeline unchanged.
 
 A Strategist writes the creative brief, a Creative generates ideas, and a Creative Director evaluates the work through a configurable creative philosophy. The system iterates until the work meets the quality threshold or the iteration budget is exhausted.
 
@@ -143,25 +143,26 @@ The v1 graph in [`graph/workflow.py`](src/agt_sea/graph/workflow.py) uses two co
 
 | Agent | File | Role | Output |
 |-------|------|------|--------|
-| **Strategist** | `agents/strategist.py` | Transforms the raw client brief into a focused creative brief | Challenge, audience, insight, proposition, tone |
-| **Creative** (1.0) | `agents/creative.py` | Generates three distinct creative approaches per iteration | Concept title, core idea, execution, rationale |
-| **Creative 1** (2.0) | `agents/creative1.py` | Generates *n* distinct creative territories from the brief (default 3, configurable 1–12 via `num_territories`). Optional `territory_rejection_context` steers a regenerated batch. | Structured `list[Territory]` — each with title, core idea, why it works |
-| **Creative 2** (2.0) | `agents/creative2.py` | Develops a selected territory into a full campaign concept. Initial path works from the territory + brief; revision path incorporates the grader's score and the CD's coaching. | Structured `CampaignConcept` — title, core idea, deliverables, why it works |
-| **Creative Director** (1.0) | `agents/creative_director.py`| Evaluates creative work through a chosen philosophical lens | Structured score (0–100), strengths, weaknesses, direction |
-| **CD Grader** (2.0) | `agents/cd_grader.py` | Scores a campaign concept out of 100 against the brief. No philosophy / provenance / taste injection — objective and repeatable by contract. Temperature `0.0`. | Structured `GraderEvaluation` — score + rationale |
-| **CD Feedback** (2.0) | `agents/cd_feedback.py` | Produces directional coaching for the next Creative 2 iteration. Reads the campaign concept and (when present) the grader's score and rationale. Does not score. | Free-text revision direction (`str`) |
-| **CD Synthesis** (2.0) | `agents/cd_synthesis.py` | Final editorial judgement — the user-facing recommendation at the end of the Standard 2.0 pipeline. Schema supports N concepts (`comparison_notes` populated when >1, `None` when 1). | Structured `CDSynthesis` — selected title, recommendation narrative, per-concept score summary, comparison notes |
+| **Strategist** (1.0) | `agents/strategist_st1.py` | Transforms the raw client brief into a focused creative brief | Challenge, audience, insight, proposition, tone |
+| **Strategist** (2.0) | `agents/strategist_st2.py` | Same role and prompt template as the 1.0 strategist — split into its own file so the two pipelines can be tuned independently | Challenge, audience, insight, proposition, tone |
+| **Creative** (1.0) | `agents/creative_st1.py` | Generates three distinct creative approaches per iteration | Concept title, core idea, execution, rationale |
+| **Creative A** (2.0) | `agents/creative_a_st2.py` | Generates *n* distinct creative territories from the brief (default 3, configurable 1–12 via `num_territories`). Optional `territory_rejection_context` steers a regenerated batch. | Structured `list[Territory]` — each with title, core idea, why it works |
+| **Creative B** (2.0) | `agents/creative_b_st2.py` | Develops a selected territory into a full campaign concept. Initial path works from the territory + brief; revision path incorporates the grader's score and the CD's coaching. | Structured `CampaignConcept` — title, core idea, deliverables, why it works |
+| **Creative Director** (1.0) | `agents/creative_director_st1.py`| Evaluates creative work through a chosen philosophical lens | Structured score (0–100), strengths, weaknesses, direction |
+| **CD Grader** (2.0) | `agents/cd_grader_st2.py` | Scores a campaign concept out of 100 against the brief. No philosophy / provenance / taste injection — objective and repeatable by contract. Temperature `0.0`. | Structured `GraderEvaluation` — score + rationale |
+| **CD Feedback** (2.0) | `agents/cd_feedback_st2.py` | Produces directional coaching for the next Creative B iteration. Reads the campaign concept and (when present) the grader's score and rationale. Does not score. | Free-text revision direction (`str`) |
+| **CD Synthesis** (2.0) | `agents/cd_synthesis_st2.py` | Final editorial judgement — the user-facing recommendation at the end of the Standard 2.0 pipeline. Schema supports N concepts (`comparison_notes` populated when >1, `None` when 1). | Structured `CDSynthesis` — selected title, recommendation narrative, per-concept score summary, comparison notes |
 
-The Creative agent (1.0) has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history. Creative 2 (2.0) mirrors this two-path structure but incorporates the grader's score and the CD's coaching instead of a single CD evaluation.
+The Creative agent (1.0) has two prompt paths: initial generation (from brief only) and revision (incorporating CD feedback). It only sees the latest concept and latest feedback per iteration — not full history. Creative B (2.0) mirrors this two-path structure but incorporates the grader's score and the CD's coaching instead of a single CD evaluation.
 
-The Creative Director (1.0), Creative 1, Creative 2, CD Grader, and CD Synthesis all use `with_structured_output()` to constrain LLM output to a validated Pydantic model. Schema validation failures get one reprompt through the shared helper `invoke_with_validation_retry` (in `llm/provider.py`) before surfacing as a FAILED run. CD Feedback produces free-text output instead — the revision direction itself is the product, so no schema is imposed.
+The Creative Director (1.0), Creative A, Creative B, CD Grader, and CD Synthesis all use `with_structured_output()` to constrain LLM output to a validated Pydantic model. Schema validation failures get one reprompt through the shared helper `invoke_with_validation_retry` (in `llm/provider.py`) before surfacing as a FAILED run. CD Feedback produces free-text output instead — the revision direction itself is the product, so no schema is imposed.
 
-The seven injection-using agents (Strategist, Creative, Creative 1, Creative 2, Creative Director, CD Feedback, CD Synthesis) build their system prompts via a module-level `_build_system_prompt()` helper. Each follows the *neutral-skip* rule: when the relevant lens is `NEUTRAL`, no section is injected and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded from disk and injected into a dedicated section. Standard 2.0 agents compose three lenses (philosophy + provenance + taste); Standard 1.0 agents compose one (philosophy). The CD Grader is the exception: it is neutral by contract and takes no injection. The Strategist additionally assembles its prompt from a reusable creative-brief template and proposition guidance via `load_template()` / `load_guidance()`.
+The injection-using agents (Strategist st1/st2, Creative st1, Creative A, Creative B, Creative Director st1, CD Feedback, CD Synthesis) build their system prompts via a module-level `_build_system_prompt()` helper. Each follows the *neutral-skip* rule: when the relevant lens is `NEUTRAL`, no section is injected and the prompt reads as if the feature wasn't there at all; otherwise the text is loaded from disk and injected into a dedicated section. Standard 2.0 agents compose three lenses (philosophy + provenance + taste); Standard 1.0 agents compose one (philosophy). The CD Grader is the exception: it is neutral by contract and takes no injection. The Strategist additionally assembles its prompt from a reusable creative-brief template and proposition guidance via `load_template()` / `load_guidance()`.
 
 
 ### Philosophies
 
-Each agent runs through a configurable philosophical lens, set independently in the sidebar and stored on `AgencyState` as `strategic_philosophy`, `creative_philosophy`, and `cd_philosophy`. All three default to `neutral` (no lens injected).
+Each agent runs through a configurable philosophical lens, set independently in the sidebar's two collapsed `STANDARD 1.0 CONTROLS` and `STANDARD 2.0 CONTROLS` expanders. Standard 1.0 has three philosophy fields (`strategist_st1_strategic_philosophy`, `creative_st1_creative_philosophy`, `creative_director_st1_creative_philosophy`); Standard 2.0 has four (`strategist_st2_strategic_philosophy`, `creative_a_st2_creative_philosophy`, `creative_b_st2_creative_philosophy`, `creative_director_st2_creative_philosophy` — the CD field is shared by CD Feedback + CD Synthesis; CD Grader is neutral by contract). All default to `neutral` (no lens injected).
 
 **Creative philosophies** (shared by the Creative agent and Creative Director):
 
@@ -183,7 +184,7 @@ Each agent runs through a configurable philosophical lens, set independently in 
 | Brand World | Builds a coherent brand universe with distinctive codes |
 | Commercial Pragmatist | Prioritises clarity, commercial outcomes, and execution realism |
 
-**Provenance and Taste** (Standard 2.0) — two additional prompt-injection categories scoped per creative role (Creative 1, Creative 2, CD). Filesystem-backed under `prompts/provenance/` and `prompts/taste/`, loaded via `load_provenance()` / `load_taste()` in `prompts/loader.py`. Same neutral-skip convention as the philosophies — callers check for `NEUTRAL` before loading. Initial `.txt` presets are placeholder prose to be replaced with real content later:
+**Provenance and Taste** (Standard 2.0) — two additional prompt-injection categories scoped per creative role (Creative A, Creative B, Creative Director). Filesystem-backed under `prompts/provenance/` and `prompts/taste/`, loaded via `load_provenance()` / `load_taste()` in `prompts/loader.py`. Same neutral-skip convention as the philosophies — callers check for `NEUTRAL` before loading. Initial `.txt` presets are placeholder prose to be replaced with real content later:
 
 | Provenance | Lens |
 |-----------|------|
@@ -242,9 +243,9 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 
 **Key fields on AgencyState**:
 - `client_brief` — the raw brief supplied by the user
-- `strategic_philosophy` (default `neutral`) — shapes the Strategist's lens when writing the creative brief
-- `creative_philosophy` (default `neutral`) — shapes the Creative agent's lens when generating ideas
-- `cd_philosophy` (default `neutral`) — shapes the Creative Director's evaluation lens
+- Per-agent philosophy fields (all default `neutral`):
+  - **Standard 1.0:** `strategist_st1_strategic_philosophy`, `creative_st1_creative_philosophy`, `creative_director_st1_creative_philosophy`
+  - **Standard 2.0:** `strategist_st2_strategic_philosophy`, `creative_a_st2_creative_philosophy`, `creative_b_st2_creative_philosophy`, `creative_director_st2_creative_philosophy` (shared by CD Feedback + CD Synthesis; no field for CD Grader)
 - `llm_provider` (optional override) — when set, agents use this provider instead of the config default. Populated from the sidebar selector on each run.
 - `llm_model` (optional override) — when set, agents use this model name instead of `get_model_name(provider)`. Populated from the sidebar selector on each run.
 - `approval_threshold` (default `80.0`) — minimum CD score required for approval
@@ -253,9 +254,9 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 - `status` — tracks workflow lifecycle via `WorkflowStatus` enum
 
 Standard 2.0 extends the same state object (not a separate class). Additional fields slot into the existing groups (see [ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md)):
-- Input lenses: per-role provenance + taste — `creative1_provenance`, `creative1_taste`, `creative2_provenance`, `creative2_taste`, `cd_provenance`, `cd_taste` (all default `neutral`). The CD pair is shared by CD Feedback and CD Synthesis; the CD Grader is always neutral by contract.
+- Input lenses: per-role provenance + taste — `creative_a_st2_provenance`, `creative_a_st2_taste`, `creative_b_st2_provenance`, `creative_b_st2_taste`, `creative_director_st2_provenance`, `creative_director_st2_taste` (all default `neutral`). The CD pair is shared by CD Feedback and CD Synthesis; the CD Grader is always neutral by contract.
 - Agent outputs — `territories`, `num_territories` (default `3`, range `1–12`), `selected_territory`, `territory_rejection_context`, `campaign_concept`, `grader_evaluation`, `cd_feedback_direction`, `cd_synthesis`.
-- Run configuration — per-agent temperature: `creative1_temperature`, `creative2_temperature`, `cd_feedback_temperature`, `cd_synthesis_temperature` (default `0.7`) and `grader_temperature` (default `0.0`, hardcoded for repeatable scoring). All bounded `0.0–1.0` to stay inside Anthropic's cap.
+- Run configuration — per-agent temperature: `creative_a_st2_temperature`, `creative_b_st2_temperature`, `cd_feedback_st2_temperature`, `cd_synthesis_st2_temperature` (default `0.7`) and `cd_grader_st2_temperature` (default `0.0`, hardcoded for repeatable scoring). All bounded `0.0–1.0` to stay inside Anthropic's cap.
 
 Thresholds and max iterations are set per [ADR 0007](docs/adr/0007-revised-loop-thresholds.md), which supersedes the original values from [ADR 0006](docs/adr/0006-iterative-loop-design.md).
 
@@ -284,7 +285,7 @@ The set of models selectable in the sidebar lives in `config.AVAILABLE_MODELS` (
 
 **Deployment note**: Streamlit Cloud uses per-provider model secrets (e.g. `ANTHROPIC_MODEL=claude-haiku-4-5-20251001`) set in the secrets dashboard for cost control. The sidebar model selector defaults to whatever the config resolves for the active provider.
 
-**Temperature**: `get_llm()` accepts an optional `temperature: float | None` parameter. When `None` (the default) the argument is omitted from the underlying chat-model constructor and each provider's server-side default applies; when set it is passed through to `ChatAnthropic` / `ChatGoogleGenerativeAI` / `ChatOpenAI`. Standard 1.0 agents pass `temperature=0.7` explicitly to preserve their prior behaviour. Standard 2.0 agents read per-agent temperature from `AgencyState` (Creative 1, Creative 2, CD Feedback, CD Synthesis — default `0.7`; CD Grader hardcoded to `0.0` for repeatable scoring).
+**Temperature**: `get_llm()` accepts an optional `temperature: float | None` parameter. When `None` (the default) the argument is omitted from the underlying chat-model constructor and each provider's server-side default applies; when set it is passed through to `ChatAnthropic` / `ChatGoogleGenerativeAI` / `ChatOpenAI`. Standard 1.0 agents pass `temperature=0.7` explicitly to preserve their prior behaviour. Standard 2.0 agents read per-agent temperature from `AgencyState` (Creative A, Creative B, CD Feedback, CD Synthesis — default `0.7`; CD Grader hardcoded to `0.0` for repeatable scoring).
 
 ---
 
@@ -301,14 +302,15 @@ agt_sea/
 │   └── agt_sea/
 │       ├── config.py                # Settings, env vars, st.secrets bridge
 │       ├── agents/
-│       │   ├── strategist.py        # Brief -> creative brief
-│       │   ├── creative.py          # Creative brief -> concepts (1.0)
-│       │   ├── creative1.py         # [2.0] Creative brief -> territories
-│       │   ├── creative2.py         # [2.0] Selected territory -> campaign concept
-│       │   ├── creative_director.py # Concepts -> evaluation (1.0)
-│       │   ├── cd_grader.py         # [2.0] Campaign concept -> score + rationale
-│       │   ├── cd_feedback.py       # [2.0] Campaign concept (+ optional score) -> revision direction
-│       │   └── cd_synthesis.py      # [2.0] Campaign concept + history -> final editorial synthesis
+│       │   ├── strategist_st1.py        # Brief -> creative brief (1.0)
+│       │   ├── strategist_st2.py        # Brief -> creative brief (2.0)
+│       │   ├── creative_st1.py          # Creative brief -> concepts (1.0)
+│       │   ├── creative_a_st2.py        # [2.0] Creative brief -> territories
+│       │   ├── creative_b_st2.py        # [2.0] Selected territory -> campaign concept
+│       │   ├── creative_director_st1.py # Concepts -> evaluation (1.0)
+│       │   ├── cd_grader_st2.py         # [2.0] Campaign concept -> score + rationale
+│       │   ├── cd_feedback_st2.py       # [2.0] Campaign concept (+ optional score) -> revision direction
+│       │   └── cd_synthesis_st2.py      # [2.0] Campaign concept + history -> final editorial synthesis
 │       ├── graph/
 │       │   ├── workflow.py          # LangGraph orchestration (Standard 1.0)
 │       │   └── workflow_v2.py       # [2.0] Multi-stage pipeline with territory-selection interrupt
@@ -327,16 +329,17 @@ agt_sea/
 │       │       └── strategic/       # One .txt file per StrategicPhilosophy enum value
 ├── tests/
 │   ├── _helpers.py                      # Shared test utilities (load_brief, print_entry_fields)
-│   ├── test_strategist.py               # Strategist isolation test (manual, real LLM)
-│   ├── test_creative.py                 # Strategist -> Creative test (manual, real LLM)
-│   ├── test_creative1.py                # [2.0] Strategist -> Creative 1 test (manual, real LLM)
-│   ├── test_creative2.py                # [2.0] Strategist -> Creative 1 -> Creative 2 test (manual, real LLM)
-│   ├── test_pipeline.py                 # Full pipeline integration test (manual, real LLM)
-│   ├── test_pipeline_v2.py              # [2.0] Full Standard 2.0 pipeline test (manual, real LLM) — pauses at interrupt, auto-selects territory[0]
+│   ├── test_strategist_st1.py           # Strategist (1.0) isolation test (manual, real LLM)
+│   ├── test_strategist_st2.py           # Strategist (2.0) isolation test (manual, real LLM)
+│   ├── test_creative_st1.py             # Strategist -> Creative (1.0) test (manual, real LLM)
+│   ├── test_creative_a_st2.py           # [2.0] Strategist -> Creative A test (manual, real LLM)
+│   ├── test_creative_b_st2.py           # [2.0] Strategist -> Creative A -> Creative B test (manual, real LLM)
+│   ├── test_pipeline_st1.py             # Full Standard 1.0 pipeline integration test (manual, real LLM)
+│   ├── test_pipeline_st2.py             # [2.0] Full Standard 2.0 pipeline test (manual, real LLM) — pauses at interrupt, auto-selects territory[0]
 │   ├── test_pipeline_failure.py         # Pipeline failure-path pytest unit tests
 │   ├── test_creative_director_retry.py  # Validation-retry helper pytest unit tests (via CDEvaluation)
-│   ├── test_cd_grader.py                # [2.0] GraderEvaluation schema + retry-helper bind pytest unit tests
-│   ├── test_cd_synthesis.py             # [2.0] CDSynthesis / ConceptScoreSummary schema pytest unit tests
+│   ├── test_cd_grader_st2.py            # [2.0] GraderEvaluation schema + retry-helper bind pytest unit tests
+│   ├── test_cd_synthesis_st2.py         # [2.0] CDSynthesis / ConceptScoreSummary schema pytest unit tests
 │   ├── test_llm_provider.py             # get_llm() / retry-wrapper pytest unit tests
 │   └── test_run_guard.py                # Run guard counter pytest unit tests
 ├── frontend/
@@ -435,8 +438,8 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 ## Build Sequence
 
 1. **MVP — Creative Pipeline** ← COMPLETE (deployed to Streamlit Cloud)
-2. **Standalone Strategic Agents (e.g. creative brief writer)** ← COMPLETE (standalone, calls `run_strategist()` directly)
-3. **Standalone Creative Agents (discipline-specific specialists, different creative types)** ← COMPLETE (standalone, calls `run_creative()` directly)
+2. **Standalone Strategic Agents (e.g. creative brief writer)** ← COMPLETE (standalone, calls `run_strategist_st2()` directly)
+3. **Standalone Creative Agents (discipline-specific specialists, different creative types)** ← COMPLETE (standalone, calls `run_creative_a_st2()` / `run_creative_st1()` directly)
 4. **Error handling & graceful degradation (retries, failure contract)** ← COMPLETE (Phase 6.1 / ADRs 0012 & 0013)
 5. **Multi-stage creative pipeline with territory selection (Standard 2.0)** ← COMPLETE (ADR 0014 — Phases A–F)
 6. RAG-enhanced creative philosophies / provenance / taste
@@ -461,12 +464,12 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 
 **Standard 2.0 — Multi-Stage Creative Pipeline ([ADR 0014](docs/adr/0014-multi-stage-creative-pipeline.md))** — COMPLETE
 
-Splits creative into a two-stage pipeline with a territory-selection interrupt: Creative 1 generates N territories, the user picks one, Creative 2 develops it into a full campaign, and the Creative Director role fans out into Grader, Feedback, and Synthesis. Provenance and Taste join Philosophy as per-role prompt-injection lenses.
+Splits creative into a two-stage pipeline with a territory-selection interrupt: Creative A generates N territories, the user picks one, Creative B develops it into a full campaign, and the Creative Director role fans out into Grader, Feedback, and Synthesis. Provenance and Taste join Philosophy as per-role prompt-injection lenses.
 
 - [x] State model, new enums, new agent conventions (Phase A)
 - [x] Prompt infrastructure, temperature support, sidebar controls (Phase B)
-- [x] Creative 1 agent + standalone Creative page tab (Phases C1 / C-FE)
-- [x] Creative 2, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
+- [x] Creative A agent + standalone Creative page tab (Phases C1 / C-FE)
+- [x] Creative B, CD Grader, CD Feedback, CD Synthesis agents (Phase C2)
 - [x] v2 graph with territory-selection interrupt (Phase D)
 - [x] Workflow page Standard 2.0 / 1.0 tabs (Phase E)
 - [x] End-to-end testing, architecture diagram, docs sweep (Phase F)
@@ -511,17 +514,18 @@ uv run streamlit run frontend/app.py
 ### Run full pipeline test (makes real LLM calls)
 
 ```bash
-uv run python tests/test_pipeline.py        # Standard 1.0 — strategist → creative → CD loop
-uv run python tests/test_pipeline_v2.py     # Standard 2.0 — pauses at interrupt, auto-selects territory[0]
+uv run python tests/test_pipeline_st1.py    # Standard 1.0 — strategist → creative → CD loop
+uv run python tests/test_pipeline_st2.py    # Standard 2.0 — pauses at interrupt, auto-selects territory[0]
 ```
 
 ### Run individual agent tests (real LLM calls)
 
 ```bash
-uv run python tests/test_strategist.py
-uv run python tests/test_creative.py
-uv run python tests/test_creative1.py
-uv run python tests/test_creative2.py
+uv run python tests/test_strategist_st1.py
+uv run python tests/test_strategist_st2.py
+uv run python tests/test_creative_st1.py
+uv run python tests/test_creative_a_st2.py
+uv run python tests/test_creative_b_st2.py
 ```
 
 ### Run the unit test suite (no LLM calls)
@@ -533,7 +537,7 @@ uv run pytest tests/                         # Pytest config in pyproject.toml i
 ### Interactive pipeline exploration
 
 ```bash
-uv run python -i tests/test_pipeline.py
+uv run python -i tests/test_pipeline_st1.py
 # Then: final_state["history"][0].agent, final_state["status"], etc.
 ```
 

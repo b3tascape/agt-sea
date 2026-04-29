@@ -1,20 +1,20 @@
 """
 agt_sea — Full Standard 2.0 Pipeline Test
 
-Run with: uv run python tests/test_pipeline_v2.py
-Interactive: uv run python -i tests/test_pipeline_v2.py
+Run with: uv run python tests/test_pipeline_st2.py
+Interactive: uv run python -i tests/test_pipeline_st2.py
 
 Manual integration test — makes real LLM calls. Exercises the complete
 v2 graph end-to-end:
 
-    strategist → creative1 → interrupt → (select territory 0)
-        → creative2 → cd_grader → [feedback loop] → cd_synthesis → END
+    strategist_st2 → creative_a_st2 → interrupt → (select territory 0)
+        → creative_b_st2 → cd_grader_st2 → [feedback loop] → cd_synthesis_st2 → END
 
 Territory selection is deterministic (index 0) so the test is
 reproducible without human interaction. The feedback-loop branch
-(rejection → cd_feedback → creative2) triggers only if the grader
-score falls below ``approval_threshold``; this script accepts either
-outcome (APPROVED or MAX_ITERATIONS_REACHED).
+(rejection → cd_feedback_st2 → creative_b_st2) triggers only if the
+grader score falls below ``approval_threshold``; this script accepts
+either outcome (APPROVED or MAX_ITERATIONS_REACHED).
 
 Key patterns this test demonstrates for future callers:
 

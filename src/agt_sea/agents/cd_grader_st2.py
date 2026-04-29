@@ -7,9 +7,9 @@ Deliberately narrow by contract:
 * **No philosophy, provenance, or taste injection.** The grader is
   built for repeatability — the same concept should score the same way
   regardless of which creative lens the rest of the graph is running.
-* **Temperature comes from ``state.grader_temperature``** (default 0.0,
-  hardcoded at the state layer — not sidebar-exposed). Kept on state
-  rather than hardcoded in the agent so the recorded run metadata
+* **Temperature comes from ``state.cd_grader_st2_temperature``** (default
+  0.0, hardcoded at the state layer — not sidebar-exposed). Kept on
+  state rather than hardcoded in the agent so the recorded run metadata
   matches the actual LLM call exactly.
 * **Lean output schema:** just ``score`` and ``rationale`` on
   ``GraderEvaluation`` — no strengths/weaknesses/direction. Feedback is
@@ -84,12 +84,13 @@ def _render_campaign_concept(concept: CampaignConcept) -> str:
     )
 
 
-def run_cd_grader(state: AgencyState) -> AgencyState:
+def run_cd_grader_st2(state: AgencyState) -> AgencyState:
     """Score the current campaign concept out of 100 against the brief.
 
     Reads ``state.campaign_concept`` (required) and ``state.creative_brief``.
     Writes ``state.grader_evaluation`` and appends an ``AgentOutput`` to
-    ``state.history``. Temperature comes from ``state.grader_temperature``.
+    ``state.history``. Temperature comes from
+    ``state.cd_grader_st2_temperature``.
 
     Raises:
         ValueError: If ``state.campaign_concept`` is None. The grader has
@@ -98,19 +99,19 @@ def run_cd_grader(state: AgencyState) -> AgencyState:
     """
     if state.campaign_concept is None:
         raise ValueError(
-            "run_cd_grader requires state.campaign_concept to be set. "
-            "Creative 2 must run before the grader."
+            "run_cd_grader_st2 requires state.campaign_concept to be set. "
+            "Creative B must run before the grader."
         )
 
     provider = state.llm_provider or get_llm_provider()
     model = state.llm_model or get_model_name(provider)
 
     # Raw chat model so we can compose .with_structured_output() before
-    # wrapping with transport retry — same pattern as Creative 2 and CD.
+    # wrapping with transport retry — same pattern as Creative B and CD.
     llm = get_llm(
         provider=provider,
         model=model,
-        temperature=state.grader_temperature,
+        temperature=state.cd_grader_st2_temperature,
         with_retry=False,
     )
     structured_llm = wrap_with_transport_retry(
@@ -136,7 +137,7 @@ def run_cd_grader(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.REVIEW
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CD_GRADER,
+            agent=AgentRole.CD_GRADER_ST2,
             provider=provider,
             model=model,
             iteration=state.iteration,

@@ -1,12 +1,12 @@
 """
-agt_sea — Full Pipeline Test
+agt_sea — Full Standard 1.0 Pipeline Test
 
-Run with: uv run python tests/test_pipeline.py
-Interactive: uv run python -i tests/test_pipeline.py
+Run with: uv run python tests/test_pipeline_st1.py
+Interactive: uv run python -i tests/test_pipeline_st1.py
 
-Tests the complete agent graph: Strategist → Creative → Creative Director
-with the approval/revision loop. This is a manual integration test that
-makes real LLM calls.
+Tests the complete Standard 1.0 agent graph: Strategist → Creative →
+Creative Director with the approval/revision loop. This is a manual
+integration test that makes real LLM calls.
 """
 
 from datetime import datetime
@@ -40,7 +40,7 @@ def main():
     print("")
     print("-" * 90)
     print("-" * 90)
-    print_header("AGT_SEA — FULL PIPELINE RUN")
+    print_header("AGT_SEA — STANDARD 1.0 PIPELINE RUN")
     print(f"\nClient Brief:\n\n{brief}\n")
     print("-" * 60)
     print(f"Strategic Philosophy: {initial_state.strategist_st1_strategic_philosophy.value}")
@@ -64,18 +64,18 @@ def main():
 
     iteration = 0
     for entry in final_state.history:
-        if entry.agent == AgentRole.STRATEGIST:
+        if entry.agent == AgentRole.STRATEGIST_ST1:
             print("\n--- Strategist ------------------------")
             print_metadata(entry)
             print(f"\n  Creative Brief:\n{entry.content[:500]}...")
 
-        elif entry.agent == AgentRole.CREATIVE:
+        elif entry.agent == AgentRole.CREATIVE_ST1:
             iteration += 1
             print(f"\n--- Creative (Iteration {iteration}) ------------------------")
             print_metadata(entry)
             print(f"\n  Concepts:\n{entry.content[:500]}...")
 
-        elif entry.agent == AgentRole.CREATIVE_DIRECTOR:
+        elif entry.agent == AgentRole.CREATIVE_DIRECTOR_ST1:
             print(f"\n--- Creative Director (Iteration {iteration}) ------------------------")
             print_metadata(entry)
             print(f"  Strengths: {', '.join(entry.evaluation.strengths)}\n")

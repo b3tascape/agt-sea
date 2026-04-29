@@ -1,5 +1,5 @@
 """
-agt_sea — Creative Director Agent
+agt_sea — Creative Director Agent (Standard 1.0)
 
 Evaluates the Creative agent's output against the creative brief,
 returning a structured evaluation with score, strengths, weaknesses,
@@ -64,7 +64,7 @@ Score the work out of 100:
 Be honest. A generous score helps nobody."""
 
 
-def run_creative_director(state: AgencyState) -> AgencyState:
+def run_creative_director_st1(state: AgencyState) -> AgencyState:
     """Evaluate the creative concepts and return structured feedback.
 
     Uses with_structured_output to ensure the LLM returns a valid
@@ -110,7 +110,7 @@ def run_creative_director(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.REVIEW
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CREATIVE_DIRECTOR,
+            agent=AgentRole.CREATIVE_DIRECTOR_ST1,
             provider=provider,
             model=model,
             iteration=state.iteration,

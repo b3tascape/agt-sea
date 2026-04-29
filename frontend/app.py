@@ -74,16 +74,20 @@ _defaults: dict[str, object] = {
     "run_count": 0,
     # [2.0] Per-role provenance/taste + per-agent temperature. Mirrors the
     # controls inside the sidebar's "STANDARD 2.0 CONTROLS" expander.
-    "creative1_provenance": Provenance.NEUTRAL,
-    "creative1_taste": Taste.NEUTRAL,
-    "creative1_temperature": 0.7,
-    "creative2_provenance": Provenance.NEUTRAL,
-    "creative2_taste": Taste.NEUTRAL,
-    "creative2_temperature": 0.7,
-    "cd_provenance": Provenance.NEUTRAL,
-    "cd_taste": Taste.NEUTRAL,
-    "cd_feedback_temperature": 0.7,
-    "cd_synthesis_temperature": 0.7,
+    # cd_grader_st2_temperature is on AgencyState but not sidebar-exposed
+    # — included here so setdefault calls mirror the state shape and the
+    # 0.0 default round-trips into recorded run metadata.
+    "creative_a_st2_provenance": Provenance.NEUTRAL,
+    "creative_a_st2_taste": Taste.NEUTRAL,
+    "creative_a_st2_temperature": 0.7,
+    "creative_b_st2_provenance": Provenance.NEUTRAL,
+    "creative_b_st2_taste": Taste.NEUTRAL,
+    "creative_b_st2_temperature": 0.7,
+    "creative_director_st2_provenance": Provenance.NEUTRAL,
+    "creative_director_st2_taste": Taste.NEUTRAL,
+    "cd_grader_st2_temperature": 0.0,
+    "cd_feedback_st2_temperature": 0.7,
+    "cd_synthesis_st2_temperature": 0.7,
 }
 for _key, _val in _defaults.items():
     st.session_state.setdefault(_key, _val)

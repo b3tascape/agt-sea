@@ -1,17 +1,17 @@
 """
-agt_sea — Strategist → Creative 1 → Creative 2 Pipeline Test (Standard 2.0)
+agt_sea — Strategist → Creative A → Creative B (Standard 2.0) Pipeline Test
 
-Run with: uv run python tests/test_creative2.py
+Run with: uv run python tests/test_creative_b_st2.py
 
 Manual integration test — makes real LLM calls. Exercises the full
-initial-path Creative 2 flow:
+initial-path Creative B flow:
 
-    strategist → creative_1 (N=3) → pick territory 0 → creative_2
+    strategist → creative_a (N=3) → pick territory 0 → creative_b
 
 Territory 0 is selected deterministically so the test is reproducible
 without human interaction. The revision path (grader + CD Feedback →
 re-run) is not covered here — that belongs to the v2 pipeline
-integration test in Phase D.
+integration test (``test_pipeline_st2.py``).
 
 Asserts ``state.campaign_concept`` is populated with non-empty fields
 and at least one deliverable. Agent-output history is printed for
@@ -20,9 +20,9 @@ eyeballing.
 
 from __future__ import annotations
 
-from agt_sea.agents.creative1 import run_creative1
-from agt_sea.agents.creative2 import run_creative2
-from agt_sea.agents.strategist import run_strategist
+from agt_sea.agents.creative_a_st2 import run_creative_a_st2
+from agt_sea.agents.creative_b_st2 import run_creative_b_st2
+from agt_sea.agents.strategist_st2 import run_strategist_st2
 from agt_sea.models.state import AgencyState
 
 from _helpers import load_brief, print_entry_fields
@@ -33,7 +33,7 @@ def main() -> None:
     state = AgencyState(client_brief=brief, num_territories=3)
 
     # --- Strategist ---
-    state = run_strategist(state)
+    state = run_strategist_st2(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
@@ -46,12 +46,12 @@ def main() -> None:
     print("-" * 60)
     print(f"Creative Brief:\n{state.creative_brief}\n")
 
-    # --- Creative 1 ---
-    state = run_creative1(state)
+    # --- Creative A ---
+    state = run_creative_a_st2(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
-    print("STEP 2: CREATIVE 1 (territory generation)")
+    print("STEP 2: CREATIVE A (territory generation)")
     print("=" * 60)
     print("=" * 60)
     print(f"Status: {state.status}")
@@ -74,12 +74,12 @@ def main() -> None:
     print(f"Selected territory: {state.selected_territory.title}")
     print("-" * 60)
 
-    # --- Creative 2 ---
-    state = run_creative2(state)
+    # --- Creative B ---
+    state = run_creative_b_st2(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
-    print("STEP 3: CREATIVE 2 (campaign development)")
+    print("STEP 3: CREATIVE B (campaign development)")
     print("=" * 60)
     print("=" * 60)
     print(f"Status: {state.status}")

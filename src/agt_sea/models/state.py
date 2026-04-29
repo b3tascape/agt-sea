@@ -32,14 +32,15 @@ class AgentRole(str, Enum):
 
     Standard 1.0 and Standard 2.0 share this namespace.
     """
-    STRATEGIST = "strategist"
-    CREATIVE = "creative"              # Standard 1.0 creative agent
-    CREATIVE_1 = "creative_1"          # [2.0] Territory generation
-    CREATIVE_2 = "creative_2"          # [2.0] Campaign development
-    CREATIVE_DIRECTOR = "creative_director"
-    CD_GRADER = "cd_grader"            # [2.0] Scoring-only evaluation
-    CD_FEEDBACK = "cd_feedback"        # [2.0] Revision direction
-    CD_SYNTHESIS = "cd_synthesis"      # [2.0] Final editorial judgement
+    STRATEGIST_ST1 = "strategist_st1"
+    CREATIVE_ST1 = "creative_st1"
+    CREATIVE_DIRECTOR_ST1 = "creative_director_st1"
+    STRATEGIST_ST2 = "strategist_st2"
+    CREATIVE_A_ST2 = "creative_a_st2"          # [2.0] Territory generation
+    CREATIVE_B_ST2 = "creative_b_st2"          # [2.0] Campaign development
+    CD_GRADER_ST2 = "cd_grader_st2"            # [2.0] Scoring-only evaluation
+    CD_FEEDBACK_ST2 = "cd_feedback_st2"        # [2.0] Revision direction
+    CD_SYNTHESIS_ST2 = "cd_synthesis_st2"      # [2.0] Final editorial judgement
 
 
 class LLMProvider(str, Enum):
@@ -335,27 +336,27 @@ class AgencyState(BaseModel):
     )
     # [2.0] Per-role provenance / taste lenses. CD pair is shared by CD Feedback
     # and CD Synthesis; CD Grader is always neutral by contract.
-    creative1_provenance: Provenance = Field(
+    creative_a_st2_provenance: Provenance = Field(
         default=Provenance.NEUTRAL,
         description="Provenance lens for Creative 1 (territory generation).",
     )
-    creative1_taste: Taste = Field(
+    creative_a_st2_taste: Taste = Field(
         default=Taste.NEUTRAL,
         description="Taste lens for Creative 1 (territory generation).",
     )
-    creative2_provenance: Provenance = Field(
+    creative_b_st2_provenance: Provenance = Field(
         default=Provenance.NEUTRAL,
         description="Provenance lens for Creative 2 (campaign development).",
     )
-    creative2_taste: Taste = Field(
+    creative_b_st2_taste: Taste = Field(
         default=Taste.NEUTRAL,
         description="Taste lens for Creative 2 (campaign development).",
     )
-    cd_provenance: Provenance = Field(
+    creative_director_st2_provenance: Provenance = Field(
         default=Provenance.NEUTRAL,
         description="Provenance lens shared by CD Feedback and CD Synthesis.",
     )
-    cd_taste: Taste = Field(
+    creative_director_st2_taste: Taste = Field(
         default=Taste.NEUTRAL,
         description="Taste lens shared by CD Feedback and CD Synthesis.",
     )
@@ -447,31 +448,31 @@ class AgencyState(BaseModel):
     )
     # [2.0] Per-agent temperature. Grader is hardcoded to 0.0 for repeatable
     # scoring and is not sidebar-exposed; kept on state for traceability.
-    creative1_temperature: float = Field(
+    creative_a_st2_temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
         description="Temperature passed to `get_llm()` when invoking Creative 1.",
     )
-    creative2_temperature: float = Field(
+    creative_b_st2_temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
         description="Temperature passed to `get_llm()` when invoking Creative 2.",
     )
-    cd_feedback_temperature: float = Field(
+    cd_feedback_st2_temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
         description="Temperature for the CD Feedback agent (qualitative revision direction).",
     )
-    cd_synthesis_temperature: float = Field(
+    cd_synthesis_st2_temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
         description="Temperature for the CD Synthesis agent (final editorial judgement).",
     )
-    grader_temperature: float = Field(
+    cd_grader_st2_temperature: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,

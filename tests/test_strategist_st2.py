@@ -1,13 +1,14 @@
 """
-agt_sea — Strategist Test Script
+agt_sea — Strategist (Standard 2.0) Test Script
 
-Run with: uv run python tests/test_strategist.py
+Run with: uv run python tests/test_strategist_st2.py
 
-Tests the Strategist agent in isolation with a sample client brief.
-This is a manual integration test — it makes a real LLM call.
+Tests the Standard 2.0 Strategist agent in isolation with a sample
+client brief. This is a manual integration test — it makes a real LLM
+call.
 """
 
-from agt_sea.agents.strategist import run_strategist
+from agt_sea.agents.strategist_st2 import run_strategist_st2
 from agt_sea.models.state import AgencyState
 
 from _helpers import load_brief, print_entry_fields
@@ -17,12 +18,12 @@ def main():
     brief = load_brief()
     state = AgencyState(client_brief=brief)
 
-    # --- Strategist ---
-    state = run_strategist(state)
+    # --- Strategist (Standard 2.0) ---
+    state = run_strategist_st2(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
-    print("STEP 1: STRATEGIST")
+    print("STEP 1: STRATEGIST (Standard 2.0)")
     print("=" * 60)
     print("=" * 60)
     print(f"Status: {state.status}")

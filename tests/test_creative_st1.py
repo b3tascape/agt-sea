@@ -1,14 +1,15 @@
 """
-agt_sea — Strategist → Creative Pipeline Test
+agt_sea — Strategist → Creative (Standard 1.0) Pipeline Test
 
-Run with: uv run python tests/test_creative.py
+Run with: uv run python tests/test_creative_st1.py
 
-Tests the first two agents in sequence with a sample client brief.
-This is a manual integration test — it makes real LLM calls.
+Tests the first two Standard 1.0 agents in sequence with a sample
+client brief. This is a manual integration test — it makes real LLM
+calls.
 """
 
-from agt_sea.agents.strategist import run_strategist
-from agt_sea.agents.creative import run_creative
+from agt_sea.agents.creative_st1 import run_creative_st1
+from agt_sea.agents.strategist_st1 import run_strategist_st1
 from agt_sea.models.state import AgencyState
 
 from _helpers import load_brief, print_entry_fields
@@ -19,7 +20,7 @@ def main():
     state = AgencyState(client_brief=brief)
 
     # --- Strategist ---
-    state = run_strategist(state)
+    state = run_strategist_st1(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
@@ -44,7 +45,7 @@ def main():
     print("")
 
     # --- Creative ---
-    state = run_creative(state)
+    state = run_creative_st1(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)

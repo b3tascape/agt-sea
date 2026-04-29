@@ -1,15 +1,16 @@
 """
-agt_sea — Strategist → Creative 1 Pipeline Test (Standard 2.0)
+agt_sea — Strategist → Creative A (Standard 2.0) Pipeline Test
 
-Run with: uv run python tests/test_creative1.py
+Run with: uv run python tests/test_creative_a_st2.py
 
-Tests the Strategist then the Creative 1 territory-generation agent with
-a sample client brief and ``num_territories=3``. Manual integration test
-— makes real LLM calls.
+Tests the Standard 2.0 Strategist then the Creative A
+territory-generation agent with a sample client brief and
+``num_territories=3``. Manual integration test — makes real LLM
+calls.
 """
 
-from agt_sea.agents.creative1 import run_creative1
-from agt_sea.agents.strategist import run_strategist
+from agt_sea.agents.creative_a_st2 import run_creative_a_st2
+from agt_sea.agents.strategist_st2 import run_strategist_st2
 from agt_sea.models.state import AgencyState
 
 from _helpers import load_brief, print_entry_fields
@@ -20,7 +21,7 @@ def main() -> None:
     state = AgencyState(client_brief=brief, num_territories=3)
 
     # --- Strategist ---
-    state = run_strategist(state)
+    state = run_strategist_st2(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
@@ -44,12 +45,12 @@ def main() -> None:
     print("-" * 60)
     print("")
 
-    # --- Creative 1 ---
-    state = run_creative1(state)
+    # --- Creative A ---
+    state = run_creative_a_st2(state)
 
     print("\n" + "=" * 60)
     print("=" * 60)
-    print("STEP 2: CREATIVE 1")
+    print("STEP 2: CREATIVE A")
     print("=" * 60)
     print("=" * 60)
     print(f"Status: {state.status}")

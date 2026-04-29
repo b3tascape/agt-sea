@@ -12,9 +12,9 @@ Patching gotcha — read before editing
 --------------------------------------
 LangGraph's ``add_node(name, fn)`` captures the function object at
 graph-build time. By then, ``agt_sea/graph/workflow.py`` has already done
-``from agt_sea.agents.strategist import run_strategist_st1``, which binds
-``run_strategist_st1`` as an attribute on the ``agt_sea.graph.workflow``
-module — NOT on ``agt_sea.agents.strategist``.
+``from agt_sea.agents.strategist_st1 import run_strategist_st1``, which
+binds ``run_strategist_st1`` as an attribute on the
+``agt_sea.graph.workflow`` module — NOT on ``agt_sea.agents.strategist_st1``.
 
 These tests therefore:
 
@@ -102,19 +102,19 @@ def test_creative_director_failure_surfaces_as_failed_status(
         state.creative_brief = "stub brief"
         return state
 
-    def run_creative(state: AgencyState) -> AgencyState:
+    def run_creative_st1(state: AgencyState) -> AgencyState:
         # Minimal: only populates creative_concept and bumps iteration.
         state.creative_concept = "stub concept"
         state.iteration += 1
         return state
 
-    def run_creative_director(state: AgencyState) -> AgencyState:
+    def run_creative_director_st1(state: AgencyState) -> AgencyState:
         raise RuntimeError("cd boom")
 
     monkeypatch.setattr(workflow_module, "run_strategist_st1", run_strategist_st1)
-    monkeypatch.setattr(workflow_module, "run_creative", run_creative)
+    monkeypatch.setattr(workflow_module, "run_creative_st1", run_creative_st1)
     monkeypatch.setattr(
-        workflow_module, "run_creative_director", run_creative_director
+        workflow_module, "run_creative_director_st1", run_creative_director_st1
     )
 
     compiled = workflow_module.build_graph()
@@ -129,7 +129,7 @@ def test_creative_director_failure_surfaces_as_failed_status(
 
     assert final_state.status == WorkflowStatus.FAILED
     assert final_state.error is not None
-    assert "run_creative_director failed" in final_state.error
+    assert "run_creative_director_st1 failed" in final_state.error
     assert "RuntimeError" in final_state.error
     assert "cd boom" in final_state.error
 

@@ -18,7 +18,7 @@ Deliberate non-goals:
   mix — whichever conveys the direction most clearly.
 
 Output is a free-text ``str`` written to ``state.cd_feedback_direction``
-(the field creative_2 reads on its revision path).
+(the field Creative B reads on its revision path).
 
 The system prompt was drafted for this phase (ADR 0014 marked it TBC).
 """
@@ -142,13 +142,14 @@ def _build_human_message(
     )
 
 
-def run_cd_feedback(state: AgencyState) -> AgencyState:
+def run_cd_feedback_st2(state: AgencyState) -> AgencyState:
     """Produce directional coaching on the current campaign concept.
 
     Reads ``state.campaign_concept`` (required), ``state.creative_brief``,
     ``state.grader_evaluation`` (optional — rendered when present), the
     CD injection lenses (``creative_director_st2_creative_philosophy``,
-    ``cd_provenance``, ``cd_taste``), and ``cd_feedback_temperature``.
+    ``creative_director_st2_provenance``, ``creative_director_st2_taste``),
+    and ``cd_feedback_st2_temperature``.
 
     Writes free-text coaching to ``state.cd_feedback_direction`` and
     appends an ``AgentOutput`` to ``state.history``.
@@ -164,7 +165,7 @@ def run_cd_feedback(state: AgencyState) -> AgencyState:
     """
     if state.campaign_concept is None:
         raise ValueError(
-            "run_cd_feedback requires state.campaign_concept to be set."
+            "run_cd_feedback_st2 requires state.campaign_concept to be set."
         )
 
     provider = state.llm_provider or get_llm_provider()
@@ -175,13 +176,13 @@ def run_cd_feedback(state: AgencyState) -> AgencyState:
     llm = get_llm(
         provider=provider,
         model=model,
-        temperature=state.cd_feedback_temperature,
+        temperature=state.cd_feedback_st2_temperature,
     )
 
     system_prompt = _build_system_prompt(
         philosophy=state.creative_director_st2_creative_philosophy,
-        provenance=state.cd_provenance,
-        taste=state.cd_taste,
+        provenance=state.creative_director_st2_provenance,
+        taste=state.creative_director_st2_taste,
     )
     human_content = _build_human_message(
         creative_brief=state.creative_brief,
@@ -201,7 +202,7 @@ def run_cd_feedback(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.REVIEW
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CD_FEEDBACK,
+            agent=AgentRole.CD_FEEDBACK_ST2,
             provider=provider,
             model=model,
             iteration=state.iteration,

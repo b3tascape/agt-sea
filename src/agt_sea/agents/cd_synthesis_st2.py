@@ -11,7 +11,7 @@ must be ``None`` (see ``CDSynthesis``); when multiple are passed (future
 parallel variant), the LLM should populate it.
 
 Philosophy, provenance, and taste are injected via the neutral-skip
-pattern. Temperature comes from ``state.cd_synthesis_temperature``.
+pattern. Temperature comes from ``state.cd_synthesis_st2_temperature``.
 
 The system prompt was drafted for this phase (ADR 0014 marked it TBC).
 Design intent: confident recommendation voice, explicit instruction to
@@ -146,7 +146,7 @@ def _render_history(state: AgencyState) -> str:
     return "\n".join(lines)
 
 
-def run_cd_synthesis(state: AgencyState) -> AgencyState:
+def run_cd_synthesis_st2(state: AgencyState) -> AgencyState:
     """Produce the final editorial judgement on the campaign work.
 
     Simplified v2 graph: evaluates a single ``state.campaign_concept``
@@ -158,8 +158,8 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
     Reads ``state.campaign_concept`` (required), ``state.grader_evaluation``
     (optional — rendered as a placeholder when absent), ``state.history``,
     and the CD injection lenses (``creative_director_st2_creative_philosophy``,
-    ``cd_provenance``, ``cd_taste``). Temperature from
-    ``state.cd_synthesis_temperature``.
+    ``creative_director_st2_provenance``, ``creative_director_st2_taste``).
+    Temperature from ``state.cd_synthesis_st2_temperature``.
 
     Writes ``state.cd_synthesis`` and appends an ``AgentOutput`` to
     ``state.history``.
@@ -170,9 +170,9 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
     """
     if state.campaign_concept is None:
         raise ValueError(
-            "run_cd_synthesis requires state.campaign_concept to be set. "
+            "run_cd_synthesis_st2 requires state.campaign_concept to be set. "
             "The synthesis agent evaluates a finished campaign — Creative "
-            "2 must run first."
+            "B must run first."
         )
 
     provider = state.llm_provider or get_llm_provider()
@@ -183,7 +183,7 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
     llm = get_llm(
         provider=provider,
         model=model,
-        temperature=state.cd_synthesis_temperature,
+        temperature=state.cd_synthesis_st2_temperature,
         with_retry=False,
     )
     structured_llm = wrap_with_transport_retry(
@@ -192,8 +192,8 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
 
     system_prompt = _build_system_prompt(
         philosophy=state.creative_director_st2_creative_philosophy,
-        provenance=state.cd_provenance,
-        taste=state.cd_taste,
+        provenance=state.creative_director_st2_provenance,
+        taste=state.creative_director_st2_taste,
     )
 
     concept_block = _render_campaign_concept(state.campaign_concept)
@@ -221,7 +221,7 @@ def run_cd_synthesis(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.REVIEW
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CD_SYNTHESIS,
+            agent=AgentRole.CD_SYNTHESIS_ST2,
             provider=provider,
             model=model,
             iteration=state.iteration,

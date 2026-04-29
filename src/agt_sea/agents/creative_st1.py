@@ -1,5 +1,5 @@
 """
-agt_sea — Creative Agent
+agt_sea — Creative Agent (Standard 1.0)
 
 Takes the creative brief produced by the Strategist and generates
 three distinct creative approaches to the campaign.
@@ -92,7 +92,7 @@ For each approach, provide:
    the feedback."""
 
 
-def run_creative(state: AgencyState) -> AgencyState:
+def run_creative_st1(state: AgencyState) -> AgencyState:
     """Generate three creative approaches based on the creative brief.
 
     On first iteration, works from the creative brief alone. On subsequent
@@ -146,7 +146,7 @@ def run_creative(state: AgencyState) -> AgencyState:
     state.status = WorkflowStatus.REVIEW
     state.history.append(
         AgentOutput(
-            agent=AgentRole.CREATIVE,
+            agent=AgentRole.CREATIVE_ST1,
             provider=provider,
             model=model,
             iteration=state.iteration,

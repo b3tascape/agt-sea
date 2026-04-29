@@ -34,10 +34,11 @@ where = ["src"]
 testpaths = ["tests"]
 norecursedirs = [".archive"]
 addopts = [
-    "--ignore=tests/test_strategist.py",
-    "--ignore=tests/test_creative.py",
-    "--ignore=tests/test_creative1.py",
-    "--ignore=tests/test_creative2.py",
-    "--ignore=tests/test_pipeline.py",
-    "--ignore=tests/test_pipeline_v2.py",
+    "--ignore=tests/test_strategist_st1.py",
+    "--ignore=tests/test_strategist_st2.py",
+    "--ignore=tests/test_creative_st1.py",
+    "--ignore=tests/test_creative_a_st2.py",
+    "--ignore=tests/test_creative_b_st2.py",
+    "--ignore=tests/test_pipeline_st1.py",
+    "--ignore=tests/test_pipeline_st2.py",
 ]

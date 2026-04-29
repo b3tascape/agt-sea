@@ -9,13 +9,13 @@ Per-node render shapes:
 * Standard 1.0 — every node renders its full agent output. The
   streaming widgets ARE the audit trail until the run reaches the
   terminal UI.
-* Standard 2.0 — strategist + creative1 + cd_grader render the same
-  way; creative2 / cd_feedback / cd_synthesis render compact previews
-  (campaign title + deliverable names; first paragraph of the
-  direction; score summary + comparison notes only). The full
-  creative brief lives in a persistent expander on the Workflow v2
-  tab; the full agent outputs land in the pipeline history once the
-  run terminates.
+* Standard 2.0 — strategist_st2 + creative_a_st2 + cd_grader_st2 render
+  the same way; creative_b_st2 / cd_feedback_st2 / cd_synthesis_st2
+  render compact previews (campaign title + deliverable names; first
+  paragraph of the direction; score summary + comparison notes only).
+  The full creative brief lives in a persistent expander on the
+  Workflow v2 tab; the full agent outputs land in the pipeline history
+  once the run terminates.
 """
 
 from __future__ import annotations
@@ -27,22 +27,23 @@ import streamlit as st
 
 _NODE_LABELS: dict[str, tuple[str, str]] = {
     # --- Standard 1.0 ---
-    "strategist": ("strategist", "writing creative brief..."),
-    "creative": ("creative", "generating ideas..."),
-    "creative_director": ("creative director", "evaluating work..."),
+    "strategist_st1": ("strategist", "writing creative brief..."),
+    "creative_st1": ("creative", "generating ideas..."),
+    "creative_director_st1": ("creative director", "evaluating work..."),
     "check_iterations": ("iteration check", "checking iteration limit..."),
     "finalise_approved": ("approved", "creative work approved."),
     "finalise_max_iterations": ("max iterations", "selecting best work..."),
     # --- Standard 2.0 ---
-    "creative1": ("creative 1", "generating territories..."),
+    "strategist_st2": ("strategist", "writing creative brief..."),
+    "creative_a_st2": ("creative a", "generating territories..."),
     "interrupt_territory_selection": (
         "territory selection",
         "awaiting user selection...",
     ),
-    "creative2": ("creative 2", "developing campaign..."),
-    "cd_grader": ("cd grader", "scoring campaign..."),
-    "cd_feedback": ("cd feedback", "writing revision direction..."),
-    "cd_synthesis": ("cd synthesis", "writing final recommendation..."),
+    "creative_b_st2": ("creative b", "developing campaign..."),
+    "cd_grader_st2": ("cd grader", "scoring campaign..."),
+    "cd_feedback_st2": ("cd feedback", "writing revision direction..."),
+    "cd_synthesis_st2": ("cd synthesis", "writing final recommendation..."),
     "finalise_failed": ("failed", "run failed."),
 }
 
@@ -50,8 +51,9 @@ _NODE_LABELS: dict[str, tuple[str, str]] = {
 def _first_paragraph(text: str, max_chars: int = 50) -> str:
     """Return the first paragraph of ``text``, capped at ``max_chars``.
 
-    Used by the v2 cd_feedback streaming preview — the full direction
-    is in the pipeline history at the end; this just gives a teaser.
+    Used by the v2 cd_feedback_st2 streaming preview — the full
+    direction is in the pipeline history at the end; this just gives a
+    teaser.
     """
     if not text:
         return ""
@@ -81,7 +83,8 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
     """Render a status container for a single graph node event.
 
     Args:
-        node_name: The graph node name (e.g. "strategist", "creative1").
+        node_name: The graph node name (e.g. "strategist_st1",
+            "creative_a_st2").
         node_output: The state update dict emitted by this node.
     """
     label, description = _NODE_LABELS.get(
@@ -92,12 +95,12 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
         st.write(description)
 
         # --- Standard 1.0 ---
-        if node_name == "strategist":
+        if node_name == "strategist_st1":
             st.markdown("**creative brief:**")
             st.markdown(node_output.get("creative_brief") or "")
             status.update(label=f"{label} ✓", state="complete")
 
-        elif node_name == "creative":
+        elif node_name == "creative_st1":
             iteration = node_output.get("iteration", 0)
             st.markdown(f"**iteration {iteration} — concepts:**")
             st.markdown(node_output.get("creative_concept") or "")
@@ -106,7 +109,7 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
                 state="complete",
             )
 
-        elif node_name == "creative_director":
+        elif node_name == "creative_director_st1":
             evaluation = node_output.get("cd_evaluation")
             if evaluation is not None:
                 score = _field(evaluation, "score")
@@ -128,7 +131,12 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
             status.update(label=f"{label} ✓", state="complete")
 
         # --- Standard 2.0 ---
-        elif node_name == "creative1":
+        elif node_name == "strategist_st2":
+            st.markdown("**creative brief:**")
+            st.markdown(node_output.get("creative_brief") or "")
+            status.update(label=f"{label} ✓", state="complete")
+
+        elif node_name == "creative_a_st2":
             # Titles only — full territory cards render below the
             # streaming widgets in the territory-selection UI.
             territories = node_output.get("territories") or []
@@ -154,7 +162,7 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
                     st.markdown("**rerun requested** (no steering)")
                 status.update(label=f"{label} · rerun", state="complete")
 
-        elif node_name == "creative2":
+        elif node_name == "creative_b_st2":
             # Compact v2 preview: campaign title + deliverable names
             # only. Full CampaignConcept (core idea, deliverable
             # explanations, why-it-works) lands in the pipeline
@@ -178,7 +186,7 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
                 state="complete",
             )
 
-        elif node_name == "cd_grader":
+        elif node_name == "cd_grader_st2":
             evaluation = node_output.get("grader_evaluation")
             if evaluation is not None:
                 score = _field(evaluation, "score")
@@ -189,7 +197,7 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
                     st.markdown(f"**rationale:** {rationale}")
             status.update(label=f"{label} ✓", state="complete")
 
-        elif node_name == "cd_feedback":
+        elif node_name == "cd_feedback_st2":
             # Compact v2 preview: direction summary (first paragraph,
             # capped). Full direction lands in the pipeline history.
             direction = node_output.get("cd_feedback_direction")
@@ -198,7 +206,7 @@ def render_node_progress(node_name: str, node_output: dict) -> None:
                 st.markdown(_first_paragraph(direction))
             status.update(label=f"{label} ✓", state="complete")
 
-        elif node_name == "cd_synthesis":
+        elif node_name == "cd_synthesis_st2":
             # Compact v2 preview: score summary list + comparison
             # notes only. Selected title and recommendation narrative
             # live in the terminal UI's synthesis output and the
