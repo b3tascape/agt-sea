@@ -1,7 +1,7 @@
 """
 agt_sea — Territory Cards Component
 
-Renders a list of creative territories (Creative 1 output) as
+Renders a list of creative territories (Creative A output) as
 independent modular blocks. Each territory is a bordered container with
 title, core idea, and why-it-works — the three fields of the Territory
 model — laid out so they read as parallel options, not a ranked list.
@@ -32,7 +32,7 @@ def render_territory_cards(territories: list[Territory]) -> None:
           against 5, 6, 7+.
 
     Args:
-        territories: The Creative 1 territory list.
+        territories: The Creative A territory list.
     """
     if not territories:
         return

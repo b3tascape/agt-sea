@@ -59,7 +59,7 @@ from agt_sea.config import get_llm_provider, get_model_name  # noqa: E402
 # even if the sidebar fails to render on first load.
 _defaults: dict[str, object] = {
     # Per-agent philosophy fields. Mirror the selectors inside the sidebar's
-    # "STANDARD 1.0 CONTROLS" and "STANDARD 2.0 CONTROLS" expanders.
+    # "WORKFLOW_ST1 CONTROLS" and "WORKFLOW_ST2 CONTROLS" expanders.
     "strategist_st1_strategic_philosophy": StrategicPhilosophy.NEUTRAL,
     "creative_st1_creative_philosophy": CreativePhilosophy.NEUTRAL,
     "creative_director_st1_creative_philosophy": CreativePhilosophy.NEUTRAL,
@@ -73,7 +73,7 @@ _defaults: dict[str, object] = {
     "approval_threshold": 80.0,
     "run_count": 0,
     # [2.0] Per-role provenance/taste + per-agent temperature. Mirrors the
-    # controls inside the sidebar's "STANDARD 2.0 CONTROLS" expander.
+    # controls inside the sidebar's "WORKFLOW_ST2 CONTROLS" expander.
     # cd_grader_st2_temperature is on AgencyState but not sidebar-exposed
     # — included here so setdefault calls mirror the state shape and the
     # 0.0 default round-trips into recorded run metadata.

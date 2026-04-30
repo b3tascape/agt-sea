@@ -68,7 +68,7 @@ def _build_system_prompt(
     taste: Taste,
     num_territories: int,
 ) -> str:
-    """Build the Creative 1 system prompt.
+    """Build the Creative A system prompt.
 
     Philosophy, provenance, and taste each follow the neutral-skip rule:
     when the value is NEUTRAL the corresponding section is omitted
@@ -124,7 +124,7 @@ def _build_human_message(
     num_territories: int,
     rejection_context: str | None,
 ) -> str:
-    """Build the Creative 1 human message.
+    """Build the Creative A human message.
 
     Neutral-skip on ``rejection_context``: when populated, an extra
     paragraph asks the agent to avoid the previously rejected direction;
@@ -165,7 +165,7 @@ def run_creative_a_st2(state: AgencyState) -> AgencyState:
 
     Args:
         state: The current agency state containing the creative brief
-            and Creative 1 configuration.
+            and Creative A configuration.
 
     Returns:
         Updated state with populated ``territories`` and a new history

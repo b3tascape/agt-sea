@@ -1,6 +1,6 @@
 # ADR 0014: Multi-Stage Creative Pipeline with Territory Selection
 
-**Status:** Accepted
+**Status:** Accepted (renamed under st1/st2 convention; see CLAUDE.md)
 **Date:** 2026-04-19
 **Extends:** [ADR 0006](0006-iterative-loop-design.md) (new workflow variant with different loop structure), [ADR 0010](0010-prompt-injection-pattern.md) (new prompt injection categories)
 

@@ -20,7 +20,7 @@ import streamlit as st
 
 from agt_sea.agents.creative_a_st2 import run_creative_a_st2
 from agt_sea.agents.creative_st1 import run_creative_st1
-from agt_sea.graph.workflow import format_node_error
+from agt_sea.graph.workflow_st1 import format_node_error
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
 from components.agent_output import render_agent_output
@@ -36,7 +36,7 @@ from components.territory_cards import render_territory_cards
 
 st.title("_creative")
 
-tab_st2, tab_st1 = st.tabs(["st2_territory", "st1_campaign"])
+tab_st2, tab_st1 = st.tabs(["territory_st2", "campaign_st1"])
 
 
 # ---------------------------------------------------------------------------
@@ -74,7 +74,7 @@ def _render_st2_territory() -> None:
     )
 
     run_button = st.button(
-        "RUN CREATIVE A",
+        "RUN CREATIVE",
         type="primary",
         disabled=not brief_text,
         key="st2_run_button",

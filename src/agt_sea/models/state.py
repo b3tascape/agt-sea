@@ -82,7 +82,7 @@ class StrategicPhilosophy(str, Enum):
 class Provenance(str, Enum):
     """
     Creative practitioner background presets (upbringing, worldview) injected
-    into Creative 1, Creative 2, CD Feedback, and CD Synthesis prompts. Each
+    into Creative A, Creative B, CD Feedback, and CD Synthesis prompts. Each
     value (except NEUTRAL) maps to a prompt file in `prompts/provenance/`.
     NEUTRAL bypasses injection entirely.
 
@@ -97,7 +97,7 @@ class Provenance(str, Enum):
 class Taste(str, Enum):
     """
     Creative taste presets (passions, dislikes, influences, aesthetic
-    preferences) injected into Creative 1, Creative 2, CD Feedback, and CD
+    preferences) injected into Creative A, Creative B, CD Feedback, and CD
     Synthesis prompts. Each value (except NEUTRAL) maps to a prompt file in
     `prompts/taste/`. NEUTRAL bypasses injection entirely.
 
@@ -164,7 +164,7 @@ class AgentOutput(BaseModel):
 
 class Territory(BaseModel):
     """
-    A single creative territory produced by Creative 1. Tight artifact:
+    A single creative territory produced by Creative A. Tight artifact:
     central creative thought only — no execution details.
     """
     title: str = Field(
@@ -195,7 +195,7 @@ class CampaignDeliverable(BaseModel):
 
 class CampaignConcept(BaseModel):
     """
-    Structured output of Creative 2 — a selected territory developed into a
+    Structured output of Creative B — a selected territory developed into a
     full campaign with deliverables. Enforced via `with_structured_output()`.
     """
     title: str = Field(
@@ -240,7 +240,7 @@ class GraderEvaluation(BaseModel):
 class ConceptScoreSummary(BaseModel):
     """
     Per-concept summary inside `CDSynthesis`. Built to support N concepts so
-    the model carries forward into the future parallel Creative 2 variant;
+    the model carries forward into the future parallel Creative B variant;
     the current graph passes a single-element list.
     """
     title: str = Field(
@@ -321,11 +321,11 @@ class AgencyState(BaseModel):
     )
     creative_a_st2_creative_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.NEUTRAL,
-        description="Creative lens for Creative 1 (territory generation, Standard 2.0).",
+        description="Creative lens for Creative A (territory generation, Standard 2.0).",
     )
     creative_b_st2_creative_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.NEUTRAL,
-        description="Creative lens for Creative 2 (campaign development, Standard 2.0).",
+        description="Creative lens for Creative B (campaign development, Standard 2.0).",
     )
     creative_director_st2_creative_philosophy: CreativePhilosophy = Field(
         default=CreativePhilosophy.NEUTRAL,
@@ -338,19 +338,19 @@ class AgencyState(BaseModel):
     # and CD Synthesis; CD Grader is always neutral by contract.
     creative_a_st2_provenance: Provenance = Field(
         default=Provenance.NEUTRAL,
-        description="Provenance lens for Creative 1 (territory generation).",
+        description="Provenance lens for Creative A (territory generation).",
     )
     creative_a_st2_taste: Taste = Field(
         default=Taste.NEUTRAL,
-        description="Taste lens for Creative 1 (territory generation).",
+        description="Taste lens for Creative A (territory generation).",
     )
     creative_b_st2_provenance: Provenance = Field(
         default=Provenance.NEUTRAL,
-        description="Provenance lens for Creative 2 (campaign development).",
+        description="Provenance lens for Creative B (campaign development).",
     )
     creative_b_st2_taste: Taste = Field(
         default=Taste.NEUTRAL,
-        description="Taste lens for Creative 2 (campaign development).",
+        description="Taste lens for Creative B (campaign development).",
     )
     creative_director_st2_provenance: Provenance = Field(
         default=Provenance.NEUTRAL,
@@ -393,29 +393,29 @@ class AgencyState(BaseModel):
     # [2.0] Territory stage outputs + user input at the interrupt.
     territories: list[Territory] = Field(
         default_factory=list,
-        description="Creative 1 output. Length == `num_territories` on success.",
+        description="Creative A output. Length == `num_territories` on success.",
     )
     num_territories: int = Field(
         default=3,
         ge=1,
         le=12,
-        description="How many territories Creative 1 should generate.",
+        description="How many territories Creative A should generate.",
     )
     selected_territory: Territory | None = Field(
         default=None,
-        description="Territory chosen by the user at the interrupt; input to Creative 2.",
+        description="Territory chosen by the user at the interrupt; input to Creative B.",
     )
     territory_rejection_context: str | None = Field(
         default=None,
         description=(
-            "Optional user feedback supplied when rerunning Creative 1 "
+            "Optional user feedback supplied when rerunning Creative A "
             "instead of selecting a territory. Steers the next batch."
         ),
     )
     # [2.0] Campaign stage outputs.
     campaign_concept: CampaignConcept | None = Field(
         default=None,
-        description="Creative 2 output — structured campaign with deliverables.",
+        description="Creative B output — structured campaign with deliverables.",
     )
     grader_evaluation: GraderEvaluation | None = Field(
         default=None,
@@ -425,7 +425,7 @@ class AgencyState(BaseModel):
         default=None,
         description=(
             "Qualitative revision direction produced by CD Feedback on rejected "
-            "campaigns. Read by Creative 2 on its revision path."
+            "campaigns. Read by Creative B on its revision path."
         ),
     )
     cd_synthesis: CDSynthesis | None = Field(
@@ -452,13 +452,13 @@ class AgencyState(BaseModel):
         default=0.7,
         ge=0.0,
         le=1.0,
-        description="Temperature passed to `get_llm()` when invoking Creative 1.",
+        description="Temperature passed to `get_llm()` when invoking Creative A.",
     )
     creative_b_st2_temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
-        description="Temperature passed to `get_llm()` when invoking Creative 2.",
+        description="Temperature passed to `get_llm()` when invoking Creative B.",
     )
     cd_feedback_st2_temperature: float = Field(
         default=0.7,

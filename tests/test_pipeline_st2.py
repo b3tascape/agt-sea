@@ -41,7 +41,7 @@ from datetime import datetime
 
 from langgraph.types import Command
 
-from agt_sea.graph.workflow_v2 import agency_graph_v2
+from agt_sea.graph.workflow_st2 import agency_graph_st2
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
 from _helpers import load_brief, print_entry_fields
@@ -76,13 +76,13 @@ def main() -> AgencyState:
 
     # --- Phase 1: run until the interrupt pauses the graph ---
     print("\nRunning pipeline until territory-selection interrupt...\n")
-    for event in agency_graph_v2.stream(initial_state, config=config):
+    for event in agency_graph_st2.stream(initial_state, config=config):
         # Each event is a dict keyed by node name. Print the key so the
         # progression is visible in the terminal.
         keys = list(event.keys())
         print(f"  event: {keys}")
 
-    paused_snap = agency_graph_v2.get_state(config)
+    paused_snap = agency_graph_st2.get_state(config)
     print_header("PAUSED — TERRITORY SELECTION")
     print(f"Next node: {paused_snap.next}")
     print(f"Interrupts pending: {len(paused_snap.interrupts)}")
@@ -108,14 +108,14 @@ def main() -> AgencyState:
     print(f"Resume value: {selection}")
     print(f"Selected title: {paused_state.territories[0].title}\n")
 
-    for event in agency_graph_v2.stream(
+    for event in agency_graph_st2.stream(
         Command(resume=selection), config=config
     ):
         keys = list(event.keys())
         print(f"  event: {keys}")
 
     # --- Phase 3: final state ---
-    final_snap = agency_graph_v2.get_state(config)
+    final_snap = agency_graph_st2.get_state(config)
     final_state = AgencyState.model_validate(final_snap.values)
 
     print_header("PIPELINE HISTORY")

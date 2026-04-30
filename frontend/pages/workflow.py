@@ -4,8 +4,8 @@ agt_sea — Workflow Page
 Full creative campaign pipeline. Two tabs:
 
 * **Standard 2.0** (default, left) — multi-stage pipeline with
-  territory-selection interrupt (ADR 0014). Strategist → Creative 1
-  (territories) → human selection → Creative 2 (campaign) → CD Grader
+  territory-selection interrupt (ADR 0014). Strategist → Creative A
+  (territories) → human selection → Creative B (campaign) → CD Grader
   → [CD Feedback loop | CD Synthesis] → END.
 * **Standard 1.0** (right) — original pipeline, unchanged: Strategist
   → Creative → CD loop.
@@ -36,7 +36,7 @@ Two distinct concerns coexist during streaming and must stay separate:
 1. **Live progress display** uses the per-node events that
    ``stream()`` yields. Purely a UI concern — fed to
    ``render_node_progress()`` and gone at the next rerun.
-2. **Authoritative state** is read via ``agency_graph_v2.get_state(cfg)
+2. **Authoritative state** is read via ``agency_graph_st2.get_state(cfg)
    .values`` after the stream loop ends, then rehydrated with
    ``AgencyState.model_validate(...)``. This is what drives the
    ``v2_phase`` transition, the territory-selection UI, and the
@@ -51,8 +51,8 @@ import uuid
 import streamlit as st
 from langgraph.types import Command
 
-from agt_sea.graph.workflow import build_graph
-from agt_sea.graph.workflow_v2 import agency_graph_v2
+from agt_sea.graph.workflow_st1 import build_graph_st1
+from agt_sea.graph.workflow_st2 import agency_graph_st2
 from agt_sea.models.state import AgencyState, Territory, WorkflowStatus
 
 from components.error_state import render_error_state
@@ -71,7 +71,7 @@ from components.territory_cards import render_territory_body, render_territory_c
 
 st.title("_workflow")
 
-tab_v2, tab_v1 = st.tabs(["Standard 2.0", "Standard 1.0"])
+tab_v2, tab_v1 = st.tabs(["standard_st2", "standard_st1"])
 
 
 # ===========================================================================
@@ -96,7 +96,7 @@ def _v2_thread_config() -> dict:
 
     Every invoke() / stream() / get_state() on the v2 graph must carry
     ``config={"configurable": {"thread_id": <id>}}`` — see ADR 0014 and
-    the workflow_v2 module docstring.
+    the workflow_st2 module docstring.
     """
     return {"configurable": {"thread_id": st.session_state.v2_thread_id}}
 
@@ -113,7 +113,7 @@ def _v2_update_phase_from_graph() -> None:
     * anything else → treat as terminal and let the terminal UI render
       whatever ``state.status`` reports (usually FAILED).
     """
-    snap = agency_graph_v2.get_state(_v2_thread_config())
+    snap = agency_graph_st2.get_state(_v2_thread_config())
     if snap.next == ("interrupt_territory_selection",):
         st.session_state.v2_phase = "interrupted"
     else:
@@ -172,7 +172,7 @@ def _v2_stream(stream_input) -> None:
     the streaming section.
     """
     st.markdown("### pipeline executing...")
-    for event in agency_graph_v2.stream(stream_input, config=_v2_thread_config()):
+    for event in agency_graph_st2.stream(stream_input, config=_v2_thread_config()):
         for node_name, node_output in event.items():
             if node_name == "__interrupt__":
                 continue
@@ -201,7 +201,7 @@ def _render_v2_persistent_brief() -> None:
     """
     if not st.session_state.get("v2_thread_id"):
         return
-    snap = agency_graph_v2.get_state(_v2_thread_config())
+    snap = agency_graph_st2.get_state(_v2_thread_config())
     if not snap.values:
         return
     state = AgencyState.model_validate(snap.values)
@@ -242,7 +242,7 @@ def _render_v2_territory_selection() -> None:
     a pending action and call ``st.rerun()`` so the next run starts
     clean and processes the action at the top of the handler.
     """
-    snap = agency_graph_v2.get_state(_v2_thread_config())
+    snap = agency_graph_st2.get_state(_v2_thread_config())
     paused_state = AgencyState.model_validate(snap.values)
 
     if paused_state.status == WorkflowStatus.FAILED:
@@ -317,7 +317,7 @@ def _render_v2_terminal() -> None:
     rendered one below the brief expander, which is directly above
     this section.
     """
-    snap = agency_graph_v2.get_state(_v2_thread_config())
+    snap = agency_graph_st2.get_state(_v2_thread_config())
     final_state = AgencyState.model_validate(snap.values)
 
     if final_state.status == WorkflowStatus.FAILED:
@@ -361,10 +361,9 @@ def _render_v2_terminal() -> None:
 def _render_standard_v2() -> None:
     """Render the Standard 2.0 tab."""
     st.markdown(
-        "Submit a client brief and the **Standard 2.0** pipeline will "
+        "Submit a client brief and the **standard_st2** pipeline will "
         "generate a set of creative territories for you to pick from, "
-        "develop the one you choose into a full campaign concept, then "
-        "grade and synthesise the final recommendation."
+        "then develop the one you choose into a full campaign concept."
     )
 
     brief_text = st.text_area(
@@ -488,7 +487,7 @@ def _render_standard_v1() -> None:
         # Clear any cached final state so a mid-stream crash that fails
         # to accumulate updates doesn't leave the prior run rendered.
         st.session_state.pop("workflow_result", None)
-        graph = build_graph()
+        graph = build_graph_st1()
 
         initial_state = AgencyState(
             client_brief=brief_text,

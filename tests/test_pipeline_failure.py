@@ -11,17 +11,17 @@ Run with:
 Patching gotcha — read before editing
 --------------------------------------
 LangGraph's ``add_node(name, fn)`` captures the function object at
-graph-build time. By then, ``agt_sea/graph/workflow.py`` has already done
+graph-build time. By then, ``agt_sea/graph/workflow_st1.py`` has already done
 ``from agt_sea.agents.strategist_st1 import run_strategist_st1``, which
 binds ``run_strategist_st1`` as an attribute on the
-``agt_sea.graph.workflow`` module — NOT on ``agt_sea.agents.strategist_st1``.
+``agt_sea.graph.workflow_st1`` module — NOT on ``agt_sea.agents.strategist_st1``.
 
 These tests therefore:
 
-1. Monkeypatch ``agt_sea.graph.workflow.<agent_fn>`` (the right reference).
+1. Monkeypatch ``agt_sea.graph.workflow_st1.<agent_fn>`` (the right reference).
    Patching ``agt_sea.agents.<module>.<fn>`` would silently miss.
-2. Call ``build_graph()`` **after** the patch so the compiled graph
-   captures the patched symbol. The module-level ``agency_graph`` built
+2. Call ``build_graph_st1()`` **after** the patch so the compiled graph
+   captures the patched symbol. The module-level ``agency_graph_st1`` built
    at import time is NOT used here — it holds the unpatched originals.
 """
 
@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import pytest
 
-from agt_sea.graph import workflow as workflow_module
+from agt_sea.graph import workflow_st1 as workflow_module
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
 
@@ -57,7 +57,7 @@ def test_strategist_failure_surfaces_as_failed_status(
 
     # Rebuild the graph AFTER the patch so the compiled node captures the
     # patched symbol (see module docstring).
-    compiled = workflow_module.build_graph()
+    compiled = workflow_module.build_graph_st1()
 
     initial_state = AgencyState(client_brief="test brief")
 
@@ -117,7 +117,7 @@ def test_creative_director_failure_surfaces_as_failed_status(
         workflow_module, "run_creative_director_st1", run_creative_director_st1
     )
 
-    compiled = workflow_module.build_graph()
+    compiled = workflow_module.build_graph_st1()
 
     initial_state = AgencyState(client_brief="test brief")
 

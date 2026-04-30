@@ -1,19 +1,19 @@
 """
 agt_sea — Graph Workflow (Standard 2.0)
 
-Multi-stage pipeline (ADR 0014): Strategist -> Creative 1 (territories)
--> human interrupt (territory selection) -> Creative 2 (campaign
+Multi-stage pipeline (ADR 0014): Strategist -> Creative A (territories)
+-> human interrupt (territory selection) -> Creative B (campaign
 concept) -> CD Grader -> [CD Feedback loop | CD Synthesis] -> END.
 
-Differences from ``workflow.py`` (Standard 1.0) that matter to readers:
+Differences from ``workflow_st1.py`` (Standard 1.0) that matter to readers:
 
 1. **Checkpointer is required** — LangGraph's ``interrupt()`` primitive
    only works when the compiled graph is given a checkpointer. We use
    ``MemorySaver`` for zero-dependency, in-memory persistence. The
    checkpointer is instantiated at **module scope** (see ``_CHECKPOINTER``
-   below) and shared across every ``build_graph_v2()`` call — this is
+   below) and shared across every ``build_graph_st2()`` call — this is
    deliberate: Streamlit re-runs the whole page script on every user
-   interaction, which means ``build_graph_v2()`` is called afresh each
+   interaction, which means ``build_graph_st2()`` is called afresh each
    time. A per-call ``MemorySaver()`` would erase in-flight interrupts
    on the next rerun. A module-level singleton survives within the
    Python process. It does NOT survive a process restart / redeploy —
@@ -67,7 +67,7 @@ from agt_sea.agents.cd_synthesis_st2 import run_cd_synthesis_st2
 from agt_sea.agents.creative_a_st2 import run_creative_a_st2
 from agt_sea.agents.creative_b_st2 import run_creative_b_st2
 from agt_sea.agents.strategist_st2 import run_strategist_st2
-from agt_sea.graph.workflow import format_node_error
+from agt_sea.graph.workflow_st1 import format_node_error
 from agt_sea.models.state import AgencyState, WorkflowStatus
 
 
@@ -75,7 +75,7 @@ from agt_sea.models.state import AgencyState, WorkflowStatus
 # Module-level checkpointer singleton
 # ---------------------------------------------------------------------------
 #
-# Instantiated once at import time. Every call to ``build_graph_v2()``
+# Instantiated once at import time. Every call to ``build_graph_st2()``
 # passes this same instance to ``StateGraph.compile(checkpointer=...)``,
 # so interrupted runs survive Streamlit's per-interaction script reruns
 # within a process. See the module docstring for the rationale.
@@ -149,7 +149,7 @@ def _interrupt_territory_selection(state: AgencyState) -> AgencyState:
     * ``{"action": "select", "index": int}`` — pick the territory at
       that index in ``state.territories``.
     * ``{"action": "rerun", "rejection_context": str | None}`` — loop
-      back to Creative 1 with optional steering text.
+      back to Creative A with optional steering text.
 
     The payload surfaced to the client at ``interrupt()`` is a plain
     dict with the generated territories so Streamlit / a test harness
@@ -202,7 +202,7 @@ def _finalise_max_iterations(state: AgencyState) -> AgencyState:
 
     Unlike v1, v2 does NOT perform best-of restoration of a prior
     campaign concept. Only one ``CampaignConcept`` lives on state at a
-    time (each Creative 2 revision overwrites the previous), and the
+    time (each Creative B revision overwrites the previous), and the
     history stores rendered-text copies rather than typed snapshots.
     The latest campaign — the one the final grader saw — is what
     ``state.campaign_concept`` already holds, so we leave it in place.
@@ -246,8 +246,8 @@ def _route_after_interrupt(state: AgencyState) -> str:
 
     ``failed`` short-circuits to the failure finaliser if a prior node
     or the interrupt node itself captured an error. ``selected`` routes
-    to Creative 2 when the user picked a territory. ``rerun`` loops
-    back to Creative 1 with the optional rejection context already on
+    to Creative B when the user picked a territory. ``rerun`` loops
+    back to Creative A with the optional rejection context already on
     state.
     """
     if state.error is not None:
@@ -299,7 +299,7 @@ def _route_after_synthesis(state: AgencyState) -> str:
 # ---------------------------------------------------------------------------
 
 
-def build_graph_v2() -> StateGraph:
+def build_graph_st2() -> StateGraph:
     """Build and compile the Standard 2.0 creative agency workflow graph.
 
     Graph structure (success path):
@@ -399,5 +399,5 @@ def build_graph_v2() -> StateGraph:
 
 
 # Pre-built graph instance for convenience. Shares ``_CHECKPOINTER``
-# with every other ``build_graph_v2()`` call in the process.
-agency_graph_v2 = build_graph_v2()
+# with every other ``build_graph_st2()`` call in the process.
+agency_graph_st2 = build_graph_st2()

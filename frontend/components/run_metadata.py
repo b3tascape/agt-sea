@@ -27,8 +27,8 @@ def render_run_metadata(
         state: The final (rehydrated) pipeline state.
         mode: Which pipeline this run belongs to. ``"v1"`` shows the
             three Standard 1.0 philosophy fields; ``"v2"`` shows the
-            four Standard 2.0 philosophy fields (strategist, Creative 1,
-            Creative 2, Creative Director — Grader is neutral by
+            four Standard 2.0 philosophy fields (strategist, Creative A,
+            Creative B, Creative Director — Grader is neutral by
             contract and excluded).
     """
     st.markdown("### run metadata")
@@ -67,13 +67,13 @@ def render_run_metadata(
             ),
         )
         c2.metric(
-            "creative 1 philosophy",
+            "creative a philosophy",
             CREATIVE_PHILOSOPHY_LABELS.get(
                 state.creative_a_st2_creative_philosophy, ""
             ),
         )
         c3.metric(
-            "creative 2 philosophy",
+            "creative b philosophy",
             CREATIVE_PHILOSOPHY_LABELS.get(
                 state.creative_b_st2_creative_philosophy, ""
             ),

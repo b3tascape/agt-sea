@@ -32,13 +32,13 @@ def render_sidebar() -> None:
     Writes to st.session_state keys:
         llm_provider, llm_model, max_iterations, approval_threshold.
 
-        Standard 1.0 (inside the collapsible "STANDARD 1.0 CONTROLS"
+        Standard 1.0 (inside the collapsible "WORKFLOW_ST1 CONTROLS"
         expander):
             strategist_st1_strategic_philosophy,
             creative_st1_creative_philosophy,
             creative_director_st1_creative_philosophy.
 
-        Standard 2.0 (inside the collapsible "STANDARD 2.0 CONTROLS"
+        Standard 2.0 (inside the collapsible "WORKFLOW_ST2 CONTROLS"
         expander):
             strategist_st2_strategic_philosophy,
             creative_a_st2_creative_philosophy,
@@ -111,10 +111,10 @@ def render_sidebar() -> None:
     # --- Standard 1.0 controls (per-agent philosophies) ---
     # Streamlit does not allow nested expanders, so each agent is a markdown
     # sub-heading inside the expander.
-    with st.sidebar.expander("STANDARD 1.0 CONTROLS", expanded=False):
+    with st.sidebar.expander("WORKFLOW_ST1 CONTROLS", expanded=False):
         st.markdown("**Strategist**")
         st.session_state.strategist_st1_strategic_philosophy = st.selectbox(
-            "PHILOSOPHY: STRATEGIST",
+            "STRATEGIC PHILOSOPHY",
             options=list(STRATEGIC_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: STRATEGIC_PHILOSOPHY_LABELS[x],
             help="Strategic lens for the Standard 1.0 Strategist.",
@@ -124,7 +124,7 @@ def render_sidebar() -> None:
         st.markdown("---")
         st.markdown("**Creative**")
         st.session_state.creative_st1_creative_philosophy = st.selectbox(
-            "PHILOSOPHY: CREATIVE",
+            "CREATIVE PHILOSOPHY",
             options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
             help="Creative lens for the Standard 1.0 Creative agent.",
@@ -134,7 +134,7 @@ def render_sidebar() -> None:
         st.markdown("---")
         st.markdown("**Creative Director**")
         st.session_state.creative_director_st1_creative_philosophy = st.selectbox(
-            "PHILOSOPHY: CREATIVE DIRECTOR",
+            "CREATIVE PHILOSOPHY",
             options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
             help="Creative lens for the Standard 1.0 Creative Director.",
@@ -143,10 +143,10 @@ def render_sidebar() -> None:
 
     # --- Standard 2.0 controls (per-agent philosophies + per-role
     # provenance/taste + per-agent temperature) ---
-    with st.sidebar.expander("STANDARD 2.0 CONTROLS", expanded=False):
+    with st.sidebar.expander("WORKFLOW_ST2 CONTROLS", expanded=False):
         st.markdown("**Strategist**")
         st.session_state.strategist_st2_strategic_philosophy = st.selectbox(
-            "PHILOSOPHY: STRATEGIST",
+            "STRATEGIC PHILOSOPHY",
             options=list(STRATEGIC_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: STRATEGIC_PHILOSOPHY_LABELS[x],
             help="Strategic lens for the Standard 2.0 Strategist.",
@@ -154,68 +154,68 @@ def render_sidebar() -> None:
         )
 
         st.markdown("---")
-        st.markdown("**Creative 1** — territory generation")
+        st.markdown("**Creative A** — territory generation")
         st.session_state.creative_a_st2_creative_philosophy = st.selectbox(
-            "PHILOSOPHY: CREATIVE 1",
+            "CREATIVE PHILOSOPHY",
             options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
-            help="Creative lens for Creative 1 (territory generation).",
+            help="Creative lens for Creative A (territory generation).",
             key="sb_creative_a_st2_creative_philosophy",
         )
         st.session_state.creative_a_st2_provenance = st.selectbox(
-            "PROVENANCE: CREATIVE 1",
+            "PROVENANCE",
             options=list(PROVENANCE_LABELS.keys()),
             format_func=lambda x: PROVENANCE_LABELS[x],
-            help="Background/upbringing lens injected into Creative 1.",
+            help="Background/upbringing lens injected into Creative A.",
             key="sb_creative_a_st2_provenance",
         )
         st.session_state.creative_a_st2_taste = st.selectbox(
-            "TASTE: CREATIVE 1",
+            "TASTE",
             options=list(TASTE_LABELS.keys()),
             format_func=lambda x: TASTE_LABELS[x],
-            help="Aesthetic/influence lens injected into Creative 1.",
+            help="Aesthetic/influence lens injected into Creative A.",
             key="sb_creative_a_st2_taste",
         )
         st.session_state.creative_a_st2_temperature = st.slider(
-            "TEMPERATURE: CREATIVE 1",
+            "TEMPERATURE",
             min_value=0.0,
             max_value=1.0,
             value=0.7,
             step=0.05,
-            help="Sampling temperature for Creative 1 (territory generation).",
+            help="Sampling temperature for Creative A (territory generation).",
             key="sb_creative_a_st2_temperature",
         )
 
         st.markdown("---")
-        st.markdown("**Creative 2** — campaign development")
+        st.markdown("**Creative B** — campaign development")
         st.session_state.creative_b_st2_creative_philosophy = st.selectbox(
-            "PHILOSOPHY: CREATIVE 2",
+            "CREATIVE PHILOSOPHY",
             options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
-            help="Creative lens for Creative 2 (campaign development).",
+            help="Creative lens for Creative B (campaign development).",
             key="sb_creative_b_st2_creative_philosophy",
         )
         st.session_state.creative_b_st2_provenance = st.selectbox(
-            "PROVENANCE: CREATIVE 2",
+            "PROVENANCE",
             options=list(PROVENANCE_LABELS.keys()),
             format_func=lambda x: PROVENANCE_LABELS[x],
-            help="Background/upbringing lens injected into Creative 2.",
+            help="Background/upbringing lens injected into Creative B.",
             key="sb_creative_b_st2_provenance",
         )
         st.session_state.creative_b_st2_taste = st.selectbox(
-            "TASTE: CREATIVE 2",
+            "TASTE",
             options=list(TASTE_LABELS.keys()),
             format_func=lambda x: TASTE_LABELS[x],
-            help="Aesthetic/influence lens injected into Creative 2.",
+            help="Aesthetic/influence lens injected into Creative B.",
             key="sb_creative_b_st2_taste",
         )
         st.session_state.creative_b_st2_temperature = st.slider(
-            "TEMPERATURE: CREATIVE 2",
+            "TEMPERATURE",
             min_value=0.0,
             max_value=1.0,
             value=0.7,
             step=0.05,
-            help="Sampling temperature for Creative 2 (campaign development).",
+            help="Sampling temperature for Creative B (campaign development).",
             key="sb_creative_b_st2_temperature",
         )
 
@@ -226,21 +226,21 @@ def render_sidebar() -> None:
             "and CD Synthesis. CD Grader is always neutral by contract."
         )
         st.session_state.creative_director_st2_creative_philosophy = st.selectbox(
-            "PHILOSOPHY: CREATIVE DIRECTOR",
+            "CREATIVE PHILOSOPHY",
             options=list(CREATIVE_PHILOSOPHY_LABELS.keys()),
             format_func=lambda x: CREATIVE_PHILOSOPHY_LABELS[x],
             help="Creative lens shared by CD Feedback and CD Synthesis.",
             key="sb_creative_director_st2_creative_philosophy",
         )
         st.session_state.creative_director_st2_provenance = st.selectbox(
-            "PROVENANCE: CD",
+            "PROVENANCE",
             options=list(PROVENANCE_LABELS.keys()),
             format_func=lambda x: PROVENANCE_LABELS[x],
             help="Background/upbringing lens for CD Feedback and CD Synthesis.",
             key="sb_creative_director_st2_provenance",
         )
         st.session_state.creative_director_st2_taste = st.selectbox(
-            "TASTE: CD",
+            "TASTE",
             options=list(TASTE_LABELS.keys()),
             format_func=lambda x: TASTE_LABELS[x],
             help="Aesthetic/influence lens for CD Feedback and CD Synthesis.",

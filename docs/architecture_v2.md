@@ -5,7 +5,7 @@ graph TD
 
     SP(["`**strat_philosophy**`"]):::philosophy --> B
 
-    B --> C1["`**creative 1**
+    B --> C1["`**creative a**
     Core idea generation
     1–2 sentence articulations`"]:::agent
 
@@ -26,7 +26,7 @@ graph TD
     optional context`"| C1
 
     H -->|"`preference
-    selected`"| C2["`**creative 2**
+    selected`"| C2["`**creative b**
     Campaign generation`"]:::agent
 
     CP2(["`**creative_philosophy

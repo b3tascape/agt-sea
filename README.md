@@ -2,7 +2,7 @@
 
 An AI-powered creative marketing tool for brands and agencies offering a number of services designed to improve creative output. 
 
-The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `st2_territory` (default) for Standard 2.0 territory generation via the Creative A agent, and `st1_campaign` for the original single-shot creative agent. The Workflow page mirrors that structure: `Standard 2.0` (default) runs the multi-stage v2 pipeline with a human-in-the-loop territory selection interrupt; `Standard 1.0` runs the original v1 pipeline unchanged.
+The app is structured as a multipage Streamlit application with standalone modules for Strategy, Creative, and a full Workflow pipeline, plus a Tools page in development. The Creative page hosts two tabs — `territory_st2` (default) for Standard 2.0 territory generation via the Creative A agent, and `campaign_st1` for the original single-shot creative agent. The Workflow page mirrors that structure: `standard_st2` (default) runs the multi-stage v2 pipeline with a human-in-the-loop territory selection interrupt; `standard_st1` runs the original v1 pipeline unchanged.
 
 A Strategist writes the creative brief, a Creative generates ideas, and a Creative Director evaluates the work through a configurable creative philosophy. The system iterates until the work meets the quality threshold or the iteration budget is exhausted.
 
@@ -92,7 +92,7 @@ graph TD
     classDef grader fill:#B0BEC5,color:#000,stroke:#78909C
 ```
 
-The v2 graph lives in [`graph/workflow_v2.py`](src/agt_sea/graph/workflow_v2.py); the same diagram is also kept in [`docs/architecture_v2.md`](docs/architecture_v2.md). It splits Creative into a territory-generation stage (Creative 1) and a campaign-development stage (Creative 2) with a human-in-the-loop interrupt between them: after Creative 1 generates territories, LangGraph's `interrupt()` primitive pauses the graph until the user selects one (or asks for a rerun with optional steering). The Creative Director role fans out into CD Grader (objective scoring at temp=0), CD Feedback (revision coaching), and CD Synthesis (final editorial recommendation).
+The v2 graph lives in [`graph/workflow_st2.py`](src/agt_sea/graph/workflow_st2.py); the same diagram is also kept in [`docs/architecture_v2.md`](docs/architecture_v2.md). It splits Creative into a territory-generation stage (Creative A) and a campaign-development stage (Creative B) with a human-in-the-loop interrupt between them: after Creative A generates territories, LangGraph's `interrupt()` primitive pauses the graph until the user selects one (or asks for a rerun with optional steering). The Creative Director role fans out into CD Grader (objective scoring at temp=0), CD Feedback (revision coaching), and CD Synthesis (final editorial recommendation).
 
 The v2 graph requires a checkpointer (a module-scope `MemorySaver` singleton) so the pause state survives across calls, and every `invoke()` / `stream()` call must carry `config={"configurable": {"thread_id": "<id>"}}`. Resume is `Command(resume={"action": ..., ...})` on a second call with the same thread — `{"action": "select", "index": int}` to develop a territory or `{"action": "rerun", "rejection_context": str | None}` to regenerate. Boundary rehydration works identically to v1 — LangGraph returns a plain dict and call sites rehydrate with `AgencyState.model_validate(...)`.
 
@@ -137,7 +137,7 @@ graph LR
     classDef philosophy fill:#80deea,color:#000,stroke:#4dd0e1
 ```
 
-The v1 graph in [`graph/workflow.py`](src/agt_sea/graph/workflow.py) uses two conditional edges to implement the approval gate and iteration limit. Routing functions are pure (return strings only). State mutations happen in dedicated finalisation nodes before `END`. Both graphs share the same patterns — `_safe_node` wrapping for failure capture, the `WorkflowStatus.FAILED` contract with `state.error` for the frontend.
+The v1 graph in [`graph/workflow_st1.py`](src/agt_sea/graph/workflow_st1.py) uses two conditional edges to implement the approval gate and iteration limit. Routing functions are pure (return strings only). State mutations happen in dedicated finalisation nodes before `END`. Both graphs share the same patterns — `_safe_node` wrapping for failure capture, the `WorkflowStatus.FAILED` contract with `state.error` for the frontend.
 
 ### Agents
 
@@ -162,7 +162,7 @@ The injection-using agents (Strategist st1/st2, Creative st1, Creative A, Creati
 
 ### Philosophies
 
-Each agent runs through a configurable philosophical lens, set independently in the sidebar's two collapsed `STANDARD 1.0 CONTROLS` and `STANDARD 2.0 CONTROLS` expanders. Standard 1.0 has three philosophy fields (`strategist_st1_strategic_philosophy`, `creative_st1_creative_philosophy`, `creative_director_st1_creative_philosophy`); Standard 2.0 has four (`strategist_st2_strategic_philosophy`, `creative_a_st2_creative_philosophy`, `creative_b_st2_creative_philosophy`, `creative_director_st2_creative_philosophy` — the CD field is shared by CD Feedback + CD Synthesis; CD Grader is neutral by contract). All default to `neutral` (no lens injected).
+Each agent runs through a configurable philosophical lens, set independently in the sidebar's two collapsed `WORKFLOW_ST1 CONTROLS` and `WORKFLOW_ST2 CONTROLS` expanders. Standard 1.0 has three philosophy fields (`strategist_st1_strategic_philosophy`, `creative_st1_creative_philosophy`, `creative_director_st1_creative_philosophy`); Standard 2.0 has four (`strategist_st2_strategic_philosophy`, `creative_a_st2_creative_philosophy`, `creative_b_st2_creative_philosophy`, `creative_director_st2_creative_philosophy` — the CD field is shared by CD Feedback + CD Synthesis; CD Grader is neutral by contract). All default to `neutral` (no lens injected).
 
 **Creative philosophies** (shared by the Creative agent and Creative Director):
 
@@ -220,7 +220,7 @@ The framework supports provider switching via configuration — change the `LLM_
 - **Google** (Gemini)
 - **OpenAI** (GPT)
 
-Per-provider model selection is exposed in the sidebar from `config.AVAILABLE_MODELS`. Per-agent temperature (Standard 2.0) is exposed in the sidebar's "STANDARD 2.0 CONTROLS" expander.
+Per-provider model selection is exposed in the sidebar from `config.AVAILABLE_MODELS`. Per-agent temperature (Standard 2.0) is exposed in the sidebar's "WORKFLOW_ST2 CONTROLS" expander.
 
 ---
 
@@ -233,7 +233,7 @@ Core state object: `AgencyState` (Pydantic `BaseModel` in `models/state.py`). Th
 **Supporting models**:
 - `CDEvaluation` — structured evaluation used by Standard 1.0 (score 0–100 with validation, strengths, weaknesses, direction)
 - `AgentOutput` — single agent output with metadata (agent, provider, model, iteration, content, timestamp, optional evaluation)
-- `Territory` / `CampaignDeliverable` / `CampaignConcept` — Standard 2.0 creative artifacts (see ADR 0014). `Territory` is the atomic output of Creative 1; `CampaignConcept` is Creative 2's structured campaign (title, core idea, deliverables list, rationale)
+- `Territory` / `CampaignDeliverable` / `CampaignConcept` — Standard 2.0 creative artifacts (see ADR 0014). `Territory` is the atomic output of Creative A; `CampaignConcept` is Creative B's structured campaign (title, core idea, deliverables list, rationale)
 - `GraderEvaluation` — Standard 2.0 grader output (score 0–100 + rationale only, no qualitative feedback)
 - `CDSynthesis` / `ConceptScoreSummary` — Standard 2.0 final editorial judgement. Schema supports N concepts for the future parallel variant; the current graph passes one
 
@@ -312,8 +312,8 @@ agt_sea/
 │       │   ├── cd_feedback_st2.py       # [2.0] Campaign concept (+ optional score) -> revision direction
 │       │   └── cd_synthesis_st2.py      # [2.0] Campaign concept + history -> final editorial synthesis
 │       ├── graph/
-│       │   ├── workflow.py          # LangGraph orchestration (Standard 1.0)
-│       │   └── workflow_v2.py       # [2.0] Multi-stage pipeline with territory-selection interrupt
+│       │   ├── workflow_st1.py      # LangGraph orchestration (Standard 1.0)
+│       │   └── workflow_st2.py      # [2.0] Multi-stage pipeline with territory-selection interrupt
 │       ├── llm/
 │       │   └── provider.py          # LLM provider abstraction
 │       ├── models/
@@ -347,7 +347,7 @@ agt_sea/
 │   ├── pages/
 │   │   ├── strategy.py              # Standalone strategist
 │   │   ├── creative.py              # Standalone creative
-│   │   ├── workflow.py              # Full pipeline — tabbed (Standard 2.0 default, Standard 1.0)
+│   │   ├── workflow.py              # Full pipeline — tabbed (standard_st2 default, standard_st1)
 │   │   ├── tools.py                 # Tools (holding message)
 │   │   ├── marketing.py             # Placeholder (hidden)
 │   │   ├── production.py            # Placeholder (hidden)
@@ -444,7 +444,7 @@ Key technical decisions are documented as Architecture Decision Records in [`doc
 5. **Multi-stage creative pipeline with territory selection (Standard 2.0)** ← COMPLETE (ADR 0014 — Phases A–F)
 6. RAG-enhanced creative philosophies / provenance / taste
 7. Structured logging & tracing (LangSmith)
-8. Parallel Creative 2 variant (3× campaign development from N selected territories)
+8. Parallel Creative B variant (3× campaign development from N selected territories)
 9. Brand Strategy Module (branding / brand positioning)
 10. Provider comparison tooling
 

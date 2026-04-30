@@ -52,7 +52,7 @@ def _build_system_prompt(
     provenance: Provenance,
     taste: Taste,
 ) -> str:
-    """Build the Creative 2 initial system prompt.
+    """Build the Creative B initial system prompt.
 
     Philosophy, provenance, and taste each follow the neutral-skip rule:
     when the value is NEUTRAL the corresponding section is omitted
@@ -106,11 +106,11 @@ def _build_revision_prompt(
     provenance: Provenance,
     taste: Taste,
 ) -> str:
-    """Build the Creative 2 revision system prompt.
+    """Build the Creative B revision system prompt.
 
     Same neutral-skip rule for all three injection lenses. Used when a
     previous campaign concept has been graded and coached, and Creative
-    2 is being asked to iterate.
+    B is being asked to iterate.
     """
     philosophy_section = ""
     if philosophy != CreativePhilosophy.NEUTRAL:

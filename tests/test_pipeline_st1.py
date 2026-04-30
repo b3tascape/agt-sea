@@ -11,7 +11,7 @@ integration test that makes real LLM calls.
 
 from datetime import datetime
 
-from agt_sea.graph.workflow import agency_graph
+from agt_sea.graph.workflow_st1 import agency_graph_st1
 from agt_sea.models.state import AgencyState, AgentRole, WorkflowStatus
 
 from _helpers import load_brief, print_entry_fields
@@ -52,7 +52,7 @@ def main():
 
     # --- Run the graph ---
     print("\nRunning pipeline...\n")
-    raw = agency_graph.invoke(initial_state)
+    raw = agency_graph_st1.invoke(initial_state)
 
     # Rehydrate the dict LangGraph returns back to AgencyState so the
     # rest of this script can use attribute access and typed nested

@@ -1,5 +1,5 @@
 """
-agt_sea — Graph Workflow
+agt_sea — Graph Workflow (Standard 1.0)
 
 Defines the LangGraph state graph that orchestrates the full
 creative agency pipeline: Strategist → Creative → Creative Director
@@ -131,7 +131,7 @@ def _finalise_max_iterations(state: AgencyState) -> AgencyState:
 # Graph definition
 # ---------------------------------------------------------------------------
 
-def build_graph() -> StateGraph:
+def build_graph_st1() -> StateGraph:
     """Build and compile the creative agency workflow graph.
 
     Graph structure (success path):
@@ -215,4 +215,4 @@ def build_graph() -> StateGraph:
 
 
 # Pre-built graph instance for convenience
-agency_graph = build_graph()
+agency_graph_st1 = build_graph_st1()

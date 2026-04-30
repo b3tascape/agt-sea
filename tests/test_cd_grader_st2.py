@@ -4,7 +4,7 @@ agt_sea — CD Grader Unit Tests
 Unit tests (pytest, mocked, no real LLM calls) covering:
 
 1. ``GraderEvaluation`` schema validation — score bounds, required fields,
-   and type coercion. Proves the Pydantic contract Creative 2's loop
+   and type coercion. Proves the Pydantic contract Creative B's loop
    relies on.
 2. ``invoke_with_validation_retry`` exercised against ``GraderEvaluation``.
    The helper is generic over Pydantic models; test_creative_director_retry
